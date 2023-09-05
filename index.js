@@ -11,7 +11,7 @@ dotenv.config();
 
 connectDB();
 
-app.use('/api/usuario', userRoutes);
+app.use('/api/users', userRoutes);
 
 const PORT = process.env.PORT || 4000;
 

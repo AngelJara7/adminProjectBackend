@@ -2,6 +2,7 @@ import User from "../models/user.js";
 import emailRegistration from "../helpers/emailRegistration.js";
 import generateID from "../helpers/generateID.js";
 import generateJWT from "../helpers/generateJWT.js";
+import passwordChangeRequest from "../helpers/passwordChangeRequest.js";
 
 const register = async (req, res) => {
     const { nombre, email, contraseña } = req.body;
@@ -29,7 +30,7 @@ const register = async (req, res) => {
 }
 
 // Corregir la respuesta de error al confirmar cuenta
-const confirm = async (req, res) => {
+const confirmAccount = async (req, res) => {
     const { token } = req.params;
     const confirmUser = await User.findOne({ token });
 
@@ -41,7 +42,7 @@ const confirm = async (req, res) => {
         confirmUser.token = null;
         confirmUser.verificada = true;
         await confirmUser.save();
-        console.log(`${token}`);
+        
         res.json({ status: 200, msg: 'Cuenta confirmada' });
     } catch (error) {
         console.log(error);
@@ -81,9 +82,73 @@ const profile = async (req, res) => {
     res.json( user );
 }
 
+// Realiza la solicitud de cambio de contraseña si el usuario la olvido
+const changePassword = async (req, res) => {
+    const { email } = req.body;
+
+    const userExists = await User.findOne({ email });
+
+    if (!userExists) {
+        return res.json({ status: 404, msg: 'El email indicado no existe.' });
+    }
+
+    try {
+        userExists.token = generateID();
+        await userExists.save();
+
+        // Emial para cambiar contraseña
+        passwordChangeRequest({
+            email,
+            nombre: User.nombre,
+            token: userExists.token
+        });
+
+        res.json({ msg: 'Se ha envia un mensaje al email indicado con una solicitud de cambio de contraseña.' });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const checkToken = async (req, res) => {
+    const { token } = req.params;
+    
+    const validToken = await User.findOne({ token });
+
+    if (validToken) {
+        res.json({ msg: 'Token válido' });
+    } else {
+        res.json({ status: 403, msg: 'Token no válido' });
+    }
+}
+
+const newPassword = async (req, res) => {
+    const { token } = req.params;
+
+    const { password } = req.body;
+
+    const user = await User.findOne({ token });
+
+    if (!user) {
+        return res.json({ status: 403, msg: 'Algo salió mal' });
+    }
+
+    try {
+        user.token = null;
+        user.password = password;
+        await user.save();
+
+        res.json({ msg: 'Se ha cambiado la contraseña' });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 export {
     register,
-    confirm,
+    confirmAccount,
     authenticate,
-    profile
+    profile,
+    changePassword,
+    checkToken,
+    newPassword
 };
