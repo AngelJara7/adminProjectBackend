@@ -143,6 +143,26 @@ const newPassword = async (req, res) => {
     }
 }
 
+const updatePassword = async (req, res) => {
+    const { id } = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+        return res.json({ status: 400, msg: 'Algo salió mal' });
+    }
+
+    if (await user.checkPassword(currentPassword)) {
+        user.password = newPassword;
+        await user.save();
+        
+        return res.json({ status: 200, msg: 'La contraseña ha sido actualizada' });
+    } else {
+        return res.json({ msg: 'Contraseña actual incorrecta' });
+    }
+}
+
 export {
     register,
     confirmAccount,
@@ -150,5 +170,6 @@ export {
     profile,
     changePassword,
     checkToken,
-    newPassword
+    newPassword,
+    updatePassword
 };

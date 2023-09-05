@@ -7,7 +7,8 @@ import {
     profile, 
     changePassword,
     checkToken, 
-    newPassword, } 
+    newPassword,
+    updatePassword, } 
     from "../controllers/userControllers.js";
 import checkAuth from "../middleware/checkAuth.js";
 
@@ -21,5 +22,10 @@ router.route('/password-reset/:token').get(checkToken).post(newPassword);
 
 // Rutas Privadas
 router.get('/profile', checkAuth, profile);
+
+// Pendiente
+// router.put('/profile/:id', checkAuth, updateProfile);
+
+router.put('/update-password', checkAuth, updatePassword);
 
 export default router;
