@@ -76,8 +76,14 @@ const authenticate = async (req, res) => {
     }
 }
 
+const profile = async (req, res) => {
+    const { user } = req;
+    res.json( user );
+}
+
 export {
     register,
     confirm,
-    authenticate
+    authenticate,
+    profile
 };
