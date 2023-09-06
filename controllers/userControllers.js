@@ -5,7 +5,7 @@ import generateJWT from "../helpers/generateJWT.js";
 import passwordChangeRequest from "../helpers/passwordChangeRequest.js";
 
 const register = async (req, res) => {
-    const { nombre, email, contraseña } = req.body;
+    const { nombre, email } = req.body;
 
     const userExist = await User.findOne({ email });
 
