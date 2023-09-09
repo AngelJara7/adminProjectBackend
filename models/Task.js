@@ -4,25 +4,33 @@ const taskSchema = mongoose.Schema({
     nombre: {
         type: String,
         required: true,
-        trim: true
+        unique: true
     },
-    email: {
+    descripcion: {
+        type: String,
+        required: true
+    },
+    asignacion: {
+        type: Date,
+        default: new Date()
+    },
+    vencimiento: {
+        type: Date,
+        required: true
+    },
+    usuario: {
         type: String,
         required: true,
         unique: true,
         trim: true
     },
-    password: {
+    proyecto: {
         type: String,
         required: true
     },
-    verificada: {
+    columna: {
         type: Boolean,
         default: false
-    },
-    foto: {
-        type: String,
-        required: false
     }
 });
 
