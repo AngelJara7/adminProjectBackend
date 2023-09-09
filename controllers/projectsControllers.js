@@ -1,15 +1,31 @@
 import Project from "../models/Projects.js";
 
 const addProject = async (req, res) => {
-    const project = new Project(req.body);
-    project.usuario = req.user._id;
+    const { nombre } = req.body;
+    const { _id } = req.user._id;
+    console.log('USUARIO: ',req.user, nombre);
+    const projectsExist = await Project.findOne({ usuario: _id, nombre });
+
+    if (projectsExist) {
+        console.log('PROYECTO: ',projectsExist);
+        return res.json({ status: 403, msg: `El proyecto '${req.body.nombre}' ya existe`, m: projectsExist });
+    }
 
     try {
+        const project = new Project(req.body);
+        project.usuario = req.user._id;
+        project.columnas = [
+            { nombre: 'Sin iniciar' },
+            { nombre: 'En curso' },
+            { nombre: 'Finalizada' }
+        ];
+
         const newProject = await project.save();
 
         res.json({ status: 200, msg: newProject });
     } catch (error) {
         console.log(error);
+        return res.json(error);
     }
 }
 
@@ -21,8 +37,7 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
     const { id } = req.params;
     const project = await Project.findById(id);
-    console.log(project.usuario);
-    console.log(req.user._id);
+    
     if (!project) {
         return res.json({ status: 404, msg: 'Sin resultados' });
     }
@@ -78,10 +93,34 @@ const deleteProject = async (req, res) => {
     }
 }
 
+const addColumn = async (req, res) => {
+    const { id, nombre } = req.body;
+
+    const project = await Project.findById(id);
+
+    if (!project) {
+        return res.json({ status:403, msg: 'Sin resultados' });
+    }
+    
+    console.log('INCLUDE: ',project.columnas.some(e => e.nombre === nombre));
+    if (project.columnas.some(e => e.nombre === nombre)) {
+        return res.json({ status:403, msg: `La columna '${nombre}' ya existe` });
+    }
+
+    try {
+        const newColumn = await Project.updateOne({ _id: id }, { $push: { columnas: { nombre } } });
+
+        return res.json({ status: 200, msg: newColumn });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 export {
     addProject, 
     getProjects, 
     getProject, 
     updateProject, 
-    deleteProject
+    deleteProject,
+    addColumn
 };

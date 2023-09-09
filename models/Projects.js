@@ -1,28 +1,40 @@
 import mongoose from "mongoose";
 
-const projectsShcema = mongoose.Schema({
+const projectSchema = mongoose.Schema({
     usuario: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
     nombre: {
         type: String,
-        required: true
+        required: true,
+        // unique: true
     },
     clave: {
         type: String,
-        required: false
     },
     descripcion: {
         type: String,
         required: true
     },
+    columnas: [
+        {
+            nombre: {
+                type: String,
+                required: true,
+                // unique: true
+            }
+        },
+    ],
     fecha_creacion: {
         type: Date,
         default: new Date()
-    }
+    },
 });
 
-const Project = mongoose.model('Project', projectsShcema);
+projectSchema.index({ usuario: 1, nombre: 1 }, { unique: true });
+projectSchema.index({ usuario: 1, nombre: 1, "columnas.nombre": 1 }, { unique: true });
+
+const Project = mongoose.model('Project', projectSchema);
 
 export default Project;
