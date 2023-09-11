@@ -8,13 +8,15 @@ import {
     deleteProject, 
     addColumn, 
     updateColumn, 
-    deleteColumn } 
+    deleteColumn, 
+    projectTasks } 
     from "../controllers/projectsControllers.js";
 import checkAuth from "../middleware/checkAuth.js";
 
 // Rutas Privadas
-router.route('/').post(checkAuth, addProject).get(checkAuth, getProjects);
+// router.route('/').post(checkAuth, addProject).get(checkAuth, getProjects);
 router.route('/:id_project').get(checkAuth, getProject).put(checkAuth, updateProject).delete(checkAuth, deleteProject);
+router.get('/', checkAuth, projectTasks);
 
 router.route('/columns').post(checkAuth, addColumn);
 router.route('/columns/:id_column').put(checkAuth, updateColumn).delete(checkAuth, deleteColumn);
