@@ -3,8 +3,7 @@ import mongoose from "mongoose";
 const taskSchema = mongoose.Schema({
     nombre: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     descripcion: {
         type: String,
@@ -12,27 +11,27 @@ const taskSchema = mongoose.Schema({
     },
     asignacion: {
         type: Date,
-        default: new Date()
+        required: true
     },
     vencimiento: {
         type: Date,
         required: true
     },
     usuario: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
     },
     proyecto: {
-        type: String,
-        required: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project"
     },
     columna: {
-        type: Boolean,
-        default: false
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project.columnas"
     }
 });
+
+taskSchema.index({ proyecto: 1, nombre: 1 }, { unique: true });
 
 const Task = mongoose.model('Task', taskSchema);
 export default Task;

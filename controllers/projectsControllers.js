@@ -3,11 +3,10 @@ import Project from "../models/Projects.js";
 const addProject = async (req, res) => {
     const { nombre } = req.body;
     const { _id } = req.user._id;
-    console.log('USUARIO: ',req.user, nombre);
+    
     const projectsExist = await Project.findOne({ usuario: _id, nombre });
 
     if (projectsExist) {
-        console.log('PROYECTO: ',projectsExist);
         return res.json({ status: 403, msg: `El proyecto '${req.body.nombre}' ya existe`, m: projectsExist });
     }
 
@@ -35,8 +34,8 @@ const getProjects = async (req, res) => {
 }
 
 const getProject = async (req, res) => {
-    const { id } = req.params;
-    const project = await Project.findById(id);
+    const { id_project } = req.params;
+    const project = await Project.findById(id_project);
     
     if (!project) {
         return res.json({ status: 404, msg: 'Sin resultados' });
@@ -50,14 +49,23 @@ const getProject = async (req, res) => {
 }
 
 const updateProject = async (req, res) => {
-    const { id } = req.params;
-    const project = await Project.findById(id);
 
+    // Verifica si el proyecto exist por su nombre e id de usuario (evitar proyectos duplicados por usuario)
+    const projectName = await Project.findOne({ nombre: req.body.nombre, usuario: req.user._id });
+
+    if (projectName) {
+        return res.json({ status: 403, msg: `El proyecto '${req.body.nombre}' ya existe`, project });
+    }
+
+    // Verifica si el proyecto existe por su id
+    const project = await Project.findById(req.params.id_project);
+    
     if (!project) {
         return res.json({ status: 403, msg: 'Sin resultados' });
     }
 
-    if (project.usuario._id.toString() !== req.user._id.toString()) {
+    //  Verifica si el id usuario del proyecto coincide con el id de usuario logueado
+    if (project.usuario._id.toString() !== req.user._id.toString() && projectName) {
         return res.json({ status: 403, msg: 'Acción no válida' });
     }
 
@@ -70,12 +78,13 @@ const updateProject = async (req, res) => {
         return res.json({ status: 200, msg: updateProject });
     } catch (error) {
         console.log(error);
+        return res.json({ status: 500, msg: error });
     }
 }
 
 const deleteProject = async (req, res) => {
-    const { id } = req.params;
-    const project = await Project.findById(id);
+    const { id_project } = req.params;
+    const project = await Project.findById(id_project);
 
     if (!project) {
         return res.json({ status: 403, msg: 'Sin resultados' });
@@ -96,13 +105,14 @@ const deleteProject = async (req, res) => {
 const addColumn = async (req, res) => {
     const { id, nombre } = req.body;
 
+    // Verifica que el proyecto al que se agrega la columna existe
     const project = await Project.findById(id);
 
     if (!project) {
         return res.json({ status:403, msg: 'Sin resultados' });
     }
-    
-    console.log('INCLUDE: ',project.columnas.some(e => e.nombre === nombre));
+
+    // Verifica si el nombre de la columna que se agrega al proyecto existe
     if (project.columnas.some(e => e.nombre === nombre)) {
         return res.json({ status:403, msg: `La columna '${nombre}' ya existe` });
     }
@@ -116,11 +126,62 @@ const addColumn = async (req, res) => {
     }
 }
 
+const updateColumn = async (req, res) => {
+    const { id_column } = req.params;
+    const { id, nombre } = req.body;
+
+    const project = await Project.findById(id);
+    
+    // Verifica si el proyecto al que pertenece la columna existe
+    if (!project) {
+        return res.json({ status:403, msg: 'Sin resultados' });
+    }
+    // Verifica si el nombre de la columna que se actualiza existe dentro del proyecto
+    if (project.columnas.some(e => e.nombre === nombre)) {
+        return res.json({ status:403, msg: `La columna '${nombre}' ya existe en el Proyecto: ${project.nombre}`, project });
+    }
+
+    try {
+        const updateColumn = await Project.updateOne({ _id: id, "columnas._id": id_column }, { $set: { "columnas.$.nombre": nombre } });
+        
+        return res.json({ status: 200, msg: updateColumn });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const deleteColumn = async (req, res) => {
+    const { id_column } = req.params;
+    const { id } = req.body;
+
+    const project = await Project.findById(id);
+    
+    // Verifica si el proyecto al que pertenece la columna existe
+    if (!project) {
+        return res.json({ status:403, msg: 'Sin resultados' });
+    }
+    // Verifica si el id de la columna que se actualiza existe dentro del proyecto
+    if (!project.columnas.some(e => e.id === id_column)) {
+        return res.json({ status:404, msg: `Sin resultados`, project });
+    }
+
+    try {
+        const updateColumn = await Project.updateOne({ _id: id }, { $pull: { columnas: { _id: id_column } } });
+        
+        return res.json({ status: 200, msg: updateColumn });
+    } catch (error) {
+        console.log(error);
+        return res.json(error);
+    }
+}
+
 export {
     addProject, 
     getProjects, 
     getProject, 
     updateProject, 
     deleteProject,
-    addColumn
+    addColumn, 
+    updateColumn, 
+    deleteColumn
 };
