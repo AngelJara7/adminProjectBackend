@@ -1,4 +1,5 @@
 import Project from "../models/Projects.js";
+import mongoose from "mongoose";
 
 const addProject = async (req, res) => {
     const { nombre } = req.body;
@@ -176,27 +177,22 @@ const deleteColumn = async (req, res) => {
 }
 
 const projectTasks = async (req, res) => {
-    console.log('TAREAS POR PROYECTO');
-    // const projects = await Project.find().where('usuario').equals(req.user);
     const projects = await Project.aggregate([
         {
-            $match: { usuario: req.user._id }
-        },
-         {
-             $lookup: {
-                 from: 'tasks', 
+            $lookup: {
+                from: 'tasks', 
                 localField: '_id', 
                 foreignField: 'proyecto', 
                 as: 'projectTasks'
             }
+        }, {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.params._id), usuario: req.user._id
+            }
         }
     ]);
-    try {
-        console.log('PROYECTOS: ', projects);
-        return res.json(projects);   
-    } catch (error) {
-        return res.json(error);
-    }
+
+    return res.json(projects);
 }
 
 export {
