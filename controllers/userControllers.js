@@ -25,11 +25,10 @@ const register = async (req, res) => {
 
         return res.json({ stats: 200, msg: userSave });
     } catch (error) {
-        console.log(error);
+        return res.json({ status: 500, msg: error });
     }
 }
 
-// Corregir la respuesta de error al confirmar cuenta
 const confirmAccount = async (req, res) => {
     const { token } = req.params;
     const confirmUser = await User.findOne({ token });
@@ -45,10 +44,11 @@ const confirmAccount = async (req, res) => {
         
         res.json({ status: 200, msg: 'Cuenta confirmada' });
     } catch (error) {
-        console.log(error);
+        return res.json({ status: 500, msg: error });
     }
 }
 
+// Verifica las credenciales del usuario al iniciar sesión
 const authenticate = async (req, res) => {
     const { email, password } = req.body;
 
@@ -105,10 +105,11 @@ const changePassword = async (req, res) => {
 
         res.json({ msg: 'Se ha envia un mensaje al email indicado con una solicitud de cambio de contraseña.' });
     } catch (error) {
-        console.log(error);
+        return res.json({ status: 500, msg: error });
     }
 }
 
+// Verifica el token del usuario que realizo la solicitud de cambio de contraseña
 const checkToken = async (req, res) => {
     const { token } = req.params;
     
@@ -139,7 +140,7 @@ const newPassword = async (req, res) => {
 
         res.json({ msg: 'Se ha cambiado la contraseña' });
     } catch (error) {
-        console.log(error);
+        return res.json({ status: 500, msg: error });
     }
 }
 

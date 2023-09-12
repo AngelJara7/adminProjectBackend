@@ -7,8 +7,7 @@ const projectSchema = mongoose.Schema({
     },
     nombre: {
         type: String,
-        required: true,
-        // unique: true
+        required: true
     },
     clave: {
         type: String,
