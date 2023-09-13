@@ -70,15 +70,15 @@ const updateProject = async (req, res) => {
     /* Evitar duplicados en los nombre de los proyectos por usuario.
       Se compara el nombre del prpyecto y su id. de ser cierta la comparacion significa 
       que ya existe un proyecto con el mismo nombre y no se puede cambiar el nombre del proyecto indicada */
-    console.log(projects[0].nombre !== nombre && projects[0]._id !== id_project);
-    console.log(projects[0].nombre, nombre, projects[0]._id.toString(), id_project.toString());
-
-    while (projects[cont].nombre == nombre && projects[cont]._id.toString() === id_project.toString()) {
-        console.log('enviando...');
+    while (cont < projects.length) {
+        
+        if (projects[cont].nombre.toUpperCase() === nombre.toUpperCase() 
+        && projects[cont]._id.toString() !== id_project.toString()) {
+            return res.json({ status: 403, msg: `Ya existe un proyecto registrado con este nombre`, 'p': projects });
+        }
         cont ++;
-        return res.json({ status: 403, msg: `Ya existe un proyecto registrado con este nombre`, projects});
     }
-    return res.json(projects);
+
     // Verifica si el proyecto existe por su id
     const project = await Project.findById(req.params.id_project);
     
@@ -153,6 +153,7 @@ const updateColumn = async (req, res) => {
     const { nombre } = req.body;
 
     const project = await Project.findById(id_project);
+    const columnas = project.columnas;
     let cont = 0;
     // Verifica si el proyecto al que pertenece la columna existe
     if (!project) {
@@ -163,10 +164,14 @@ const updateColumn = async (req, res) => {
     //     return res.json({ status:403, msg: `La columna '${nombre}' ya existe en el Proyecto: ${project.nombre}`, project });
     // }
     
-    while (project.columnas[cont].nombre === nombre && project.columnas[cont]._id.toString() !== id_column.toString()) {
-        console.log(project.columnas[cont].nombre);
+    while (cont < columnas.length) {
+        console.log(columnas[cont]._id, columnas[cont].nombre);
+        console.log(id_column, nombre);
+        if (columnas[cont].nombre.toUpperCase() === nombre.toUpperCase() 
+        && columnas[cont]._id.toString() !== id_column.toString()) {
+            return res.json({ status: 403, msg: `La columna ${nombre} ya existe`});
+        }
         cont ++;
-        return res.json({ status: 403, msg: `La columna ${nombre} ya existe`});
     }
 
     try {

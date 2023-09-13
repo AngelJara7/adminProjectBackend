@@ -43,15 +43,16 @@ const updateTask = async(req, res) => {
     // Obtener todas las tareas de un proyecto
     const tasks = await Task.find({ proyecto: id_project });
     let cont = 0;
-    console.log(tasks[1].nombre, nombre, tasks[1]._id.toString(), id_task.toString());
-    console.log(tasks[1].nombre === nombre && tasks[1]._id.toString() != id_task.toString());
+
     /* Evitar duplicados en los nombre de las tareas por proyecto.
       Se compara el nombre de la tarea y su id. de ser cierta la comparacion significa 
       que ya existe una tarea con el mismo nombre y no se puede cambiar el nombre de la tarea indicada */
-      while (tasks[cont].nombre === nombre && tasks[cont]._id.toString() != id_task.toString()) {
-        console.log(tasks[cont].nombre === nombre && tasks[cont]._id.toString() != id_task.toString())
+      while (cont < tasks.length) {
+        if (tasks[cont].nombre.toUpperCase() === nombre.toUpperCase() 
+        && tasks[cont]._id.toString() !== id_task.toString()) {
+            return res.json({ status: 403, msg: `Ya existe una tarea registrada con este nombre`, tasks });
+        }
         cont ++;
-        return res.json({ status: 403, msg: `Ya existe un proyecto registrado con este nombre`, tasks });
     }
     
     // Busca la tarea por id
