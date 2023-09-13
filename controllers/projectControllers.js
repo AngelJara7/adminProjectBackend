@@ -104,8 +104,8 @@ const updateProject = async (req, res) => {
 }
 
 const deleteProject = async (req, res) => {
-    const { id_project } = req.params;
-    const project = await Project.findById(id_project);
+    
+    const project = await Project.findById(req.params.id_project);
 
     if (!project) {
         return res.json({ status: 403, msg: 'Sin resultados' });

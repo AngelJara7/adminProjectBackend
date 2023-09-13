@@ -1,4 +1,5 @@
 import Task from "../models/Task.js";
+import mongoose from "mongoose";
 
 const addTask = async (req, res) => {
     const { proyecto, nombre } = req.body;
@@ -33,6 +34,28 @@ const getTask = async(req, res) => {
     }
 
     res.json({ status: 200, msg: task });
+}
+
+const getTasksByProject = async (req, res) => {
+    try {
+        const tasks = await Task.aggregate([
+            { $lookup: {
+                    from: 'projects', 
+                    localField: 'proyecto', 
+                    foreignField: '_id', 
+                    as: 'Project'
+                }
+            }, { $match: { proyecto: new mongoose.Types.ObjectId(req.params.id_project) } }
+        ]);
+    
+        if (!tasks) {
+            return res.json({ status: 403, msg: 'Sin resultados' });
+        }
+
+        return res.json({ status: 200, msg: tasks });
+    } catch (error) {
+        return res.json({ status: 500, msg: error });
+    }
 }
 
 const updateTask = async(req, res) => {
@@ -84,8 +107,31 @@ const updateTask = async(req, res) => {
 
 }
 
+const deleteTask = async (req, res) => {
+
+    const task = await Task.findById(req.params.id_task);
+
+    if (!task) {
+        return res.json({ status: 403, msg: 'Sin resultados' });
+    }
+
+    //  Verifica si el id usuario de la tarea coincide con el id de usuario logueado
+    if (task.usuario._id.toString() !== req.user._id.toString()) {
+        return res.json({ status: 403, msg: 'Acción no válida' });
+    }
+
+    try {
+        await task.deleteOne();
+        return res.json({ status: 200, msg: 'Tarea Eliminada' });
+    } catch (error) {
+        return res.json({ statys: 500, msg: error });
+    }
+}
+
 export { 
     addTask, 
     getTask, 
+    getTasksByProject, 
     updateTask, 
+    deleteTask
 }
