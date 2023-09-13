@@ -18,7 +18,7 @@ router.route('/').post(checkAuth, addProject).get(checkAuth, getProjects);
 router.route('/:id_project').get(checkAuth, getProject).put(checkAuth, updateProject).delete(checkAuth, deleteProject);
 router.route('/tasks/:id_project').get(checkAuth, projectTasks);
 
-router.route('/columns').post(checkAuth, addColumn);
+router.route('/columns/:id_project').post(checkAuth, addColumn);
 router.route('/columns/:id_column/:id_project').put(checkAuth, updateColumn).delete(checkAuth, deleteColumn);
 
 export default router;

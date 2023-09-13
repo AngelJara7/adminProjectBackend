@@ -73,7 +73,7 @@ const updateTask = async(req, res) => {
       while (cont < tasks.length) {
         if (tasks[cont].nombre.toUpperCase() === nombre.toUpperCase() 
         && tasks[cont]._id.toString() !== id_task.toString()) {
-            return res.json({ status: 403, msg: `Ya existe una tarea registrada con este nombre`, tasks });
+            return res.json({ status: 403, msg: `Ya existe una tarea registrada con este nombre` });
         }
         cont ++;
     }
