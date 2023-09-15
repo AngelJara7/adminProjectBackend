@@ -1,10 +1,18 @@
 import Task from "../models/Task.js";
+import Project from "../models/Project.js";
 import mongoose from "mongoose";
 
 const addTask = async (req, res) => {
-    const { proyecto, nombre } = req.body;
-
-    const taskExist = await Task.findOne({ proyecto, nombre });
+    const { nombre } = req.body;
+    const { id_project, id_column } = req.params;
+    
+    const project = await Project.findById(id_project);
+    
+    if (!project || !project.columnas.some(e => e.id === id_column)) {
+        return res.json({ status: 403, msg: 'El proyecto o la columna no existe' });
+    }
+    
+    const taskExist = await Task.findOne({ proyecto: id_project, nombre });
 
     if (taskExist) {
         return res.json({ status: 403, msg: `La tarea '${nombre}' ya existe` });
@@ -13,11 +21,14 @@ const addTask = async (req, res) => {
     try {
         const task = await new Task(req.body);
         task.usario = req.user._id;
+        task.proyecto = id_project;
+        task.columna = id_column;
 
         const newTask = await task.save();
         return res.json({ status: 200, msg: newTask });
     } catch (error) {
         console.log(error);
+        return res.json({ status: 500, msg: error });
     }
 }
 

@@ -164,8 +164,6 @@ const updateColumn = async (req, res) => {
     // }
     
     while (cont < columnas.length) {
-        console.log(columnas[cont]._id, columnas[cont].nombre);
-        console.log(id_column, nombre);
         if (columnas[cont].nombre.toUpperCase() === nombre.toUpperCase() 
         && columnas[cont]._id.toString() !== id_column.toString()) {
             return res.json({ status: 403, msg: `La columna ${nombre} ya existe`});
