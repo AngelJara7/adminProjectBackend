@@ -56,7 +56,7 @@ const authenticate = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-        return res.json({ status: 403, msg: 'No esta registrado, registrese para acceder'});
+        return res.json({ status: 403, msg: 'Email no registrado, registrese para acceder'});
     }
 
     // Comprobar si la cuenta esta confirmada
