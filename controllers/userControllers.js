@@ -56,24 +56,28 @@ const authenticate = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-        return res.json({ status: 403, msg: 'Email no registrado, registrese para acceder'});
+        return res.status(400).json('Email no registrado, registrese para acceder');
     }
 
     // Comprobar si la cuenta esta confirmada
     if (!user.verificada) {
-        return res.json({ status: 403, msg: 'No has confirmado tu cuenta, revisa la bandeja entrada de tu email donde hemos enviado un mensaje para que confirmes tu cuenta.'});
+        return res.json.status(400).json('No ha confirmado su cuenta');
     }
 
     // Revisar la contraseña
     if (await user.checkPassword(password)) {
         res.json({
-            _id: user._id,
-            nombre: user.nombre,
-            email: user.email,
+            user: {
+                _id: user._id,
+                nombre: user.nombre,
+                email: user.email,
+                verificada: user.verificada,
+                foto: user.foto,
+            },
             token: generateJWT(user.id)
         });
     } else {
-        res.json({ status: 403, msg: 'Contraseña incorrecta'});
+        res.status(400).json('Contraseña incorrecta');
     }
 }
 
