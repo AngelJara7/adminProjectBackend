@@ -66,7 +66,7 @@ const authenticate = async (req, res) => {
 
     // Revisar la contraseña
     if (await user.checkPassword(password)) {
-        res.json({
+        res.status(200).json({
             user: {
                 _id: user._id,
                 nombre: user.nombre,
@@ -83,7 +83,9 @@ const authenticate = async (req, res) => {
 
 const profile = async (req, res) => {
     const { user } = req;
-    res.json( user );
+    const token = generateJWT(user.id);
+
+    res.status(200).json({user, token});
 }
 
 // Realiza la solicitud de cambio de contraseña si el usuario la olvido
