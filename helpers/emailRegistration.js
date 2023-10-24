@@ -20,7 +20,7 @@ const emailRegistration = async(data) => {
         subject: "Confirma tu cuenta en SPM",
         text: "Confirma tu cuenta en SPM",
         html: `<p>Hola ${nombre}, confirma tu cuenta.</p>
-            <p>Tu cuenta ha sido creada con exitó, para continuar confirma tu email en el siguiente enlace: <a href="${process.env.FRONTEND_URL}confirmar/>${token}">Confirmar Cuenta</p>
+            <p>Tu cuenta ha sido creada con exitó, para continuar confirma tu email en el siguiente enlace: <a href="${process.env.FRONTEND_URL}/auth/confirm-account/${token}">Confirmar Cuenta</p>
             
             <p>Si no has creado un cuenta con nosotros, por ignora este mensaje.</p>`
     });

@@ -10,7 +10,7 @@ const register = async (req, res) => {
     const userExist = await User.findOne({ email });
 
     if (userExist) {
-        return res.json({ status: 400, msg: 'Ya existe un usuario con este E-mail' });
+        return res.status(400).json('Este e-mail ya está vínculado a otra cuenta');
     }
 
     try {
@@ -23,9 +23,9 @@ const register = async (req, res) => {
             token: userSave.token
         });
 
-        return res.json({ stats: 200, msg: userSave });
+        return res.status(200).json({ user: userSave });
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json(error);
     }
 }
 
@@ -61,7 +61,7 @@ const authenticate = async (req, res) => {
 
     // Comprobar si la cuenta esta confirmada
     if (!user.verificada) {
-        return res.json.status(400).json('No ha confirmado su cuenta');
+        return res.status(400).json('No ha confirmado su cuenta');
     }
 
     // Revisar la contraseña
