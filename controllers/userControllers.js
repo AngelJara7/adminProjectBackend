@@ -34,7 +34,7 @@ const confirmAccount = async (req, res) => {
     const confirmUser = await User.findOne({ token });
 
     if (!confirmUser) {
-        return res.json({ status: 404, msg: 'Token no válido' });
+        return res.status(404).json('Token no válido');
     }
 
     try {
@@ -42,9 +42,11 @@ const confirmAccount = async (req, res) => {
         confirmUser.verificada = true;
         await confirmUser.save();
         
-        res.json({ status: 200, msg: 'Cuenta confirmada' });
+        res.status(200).json({
+            nombre: confirmUser.nombre
+        });
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json(error);
     }
 }
 
