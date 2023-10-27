@@ -23,7 +23,7 @@ const register = async (req, res) => {
             token: userSave.token
         });
 
-        return res.status(200).json({ user: userSave });
+        return res.status(200).json('Su cuenta ha sido creada, revise su e-mail');
     } catch (error) {
         return res.status(500).json(error);
     }
