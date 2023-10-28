@@ -22,7 +22,7 @@ const passwordChangeRequest = async (data) => {
         text: 'Reestablece tu contraseña',
         html: `<p>Hola ${nombre}, parece que olvidaste tu contraseña y has solicitado un cambio.</p>
             <p>Presiona el siguiente enlace para generar una contraseña:
-            <a href="${process.env.FRONTED_URL}/nueva-contraseña/${token}">Reestablece tu Contraseña</a> </p>
+            <a href="${process.env.FRONTEND_URL}/auth/reset-password/${token}">Reestablece tu Contraseña</a> </p>
             
             <p>Si no has solicitado un cambio de contraseña ignora este mensaje.</p>`
     });

@@ -16,9 +16,9 @@ import checkAuth from "../middleware/checkAuth.js";
 router.post('/register', register);
 router.get('/confirm-account/:token', confirmAccount);
 router.post('/login', authenticate);
-router.post('/password-reset', changePassword);
+router.post('/reset-password', changePassword);
 
-router.route('/password-reset/:token').get(checkToken).post(newPassword);
+router.route('/reset-password/:token').get(checkToken).post(newPassword);
 
 // Rutas Privadas
 router.get('/profile', checkAuth, profile);

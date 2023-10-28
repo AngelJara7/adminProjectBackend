@@ -1,4 +1,4 @@
-import User from "../models/user.js";
+import User from "../models/User.js";
 import emailRegistration from "../helpers/emailRegistration.js";
 import generateID from "../helpers/generateID.js";
 import generateJWT from "../helpers/generateJWT.js";
@@ -95,25 +95,26 @@ const changePassword = async (req, res) => {
     const { email } = req.body;
 
     const userExists = await User.findOne({ email });
-
+    console.log({ userExists });
     if (!userExists) {
-        return res.json({ status: 404, msg: 'El email indicado no existe.' });
+        console.log({ email });
+        return res.status(404).json('El email indicado no existe');
     }
 
     try {
         userExists.token = generateID();
         await userExists.save();
 
-        // Emial para cambiar contraseña
+        // Email para cambiar contraseña
         passwordChangeRequest({
             email,
             nombre: User.nombre,
             token: userExists.token
         });
 
-        res.json({ msg: 'Se ha envia un mensaje al email indicado con una solicitud de cambio de contraseña.' });
+        res.status(200).json('Se ha enviado una solicitud de cambio de contraseña a su e-mail');
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json(error);
     }
 }
 
@@ -138,7 +139,7 @@ const newPassword = async (req, res) => {
     const user = await User.findOne({ token });
 
     if (!user) {
-        return res.json({ status: 403, msg: 'Algo salió mal' });
+        return res.status(403).json('Token no válido');
     }
 
     try {
@@ -146,9 +147,9 @@ const newPassword = async (req, res) => {
         user.password = password;
         await user.save();
 
-        res.json({ msg: 'Se ha cambiado la contraseña' });
+        res.statis().json('Se ha cambiado la contraseña');
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json(error);
     }
 }
 
