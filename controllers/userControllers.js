@@ -123,11 +123,11 @@ const checkToken = async (req, res) => {
     const { token } = req.params;
     
     const validToken = await User.findOne({ token });
-
+    
     if (validToken) {
-        res.json({ msg: 'Token válido' });
+        res.status(200).json('Token válido');
     } else {
-        res.json({ status: 403, msg: 'Token no válido' });
+        res.status(403).json('Algo salio mal');
     }
 }
 
@@ -139,7 +139,7 @@ const newPassword = async (req, res) => {
     const user = await User.findOne({ token });
 
     if (!user) {
-        return res.status(403).json('Token no válido');
+        return res.status(403).json('Algo salio mal');
     }
 
     try {
@@ -147,7 +147,7 @@ const newPassword = async (req, res) => {
         user.password = password;
         await user.save();
 
-        res.statis().json('Se ha cambiado la contraseña');
+        res.status(200).json('Se ha cambiado la contraseña');
     } catch (error) {
         return res.status(500).json(error);
     }
