@@ -95,10 +95,13 @@ const changePassword = async (req, res) => {
     const { email } = req.body;
 
     const userExists = await User.findOne({ email });
-    console.log({ userExists });
+    
     if (!userExists) {
-        console.log({ email });
-        return res.status(404).json('El email indicado no existe');
+        return res.status(400).json('El email indicado no existe');
+    }
+
+    if(userExists.verificada === false) {
+        return res.status(400).json('Su cuenta no ha sido verificada');
     }
 
     try {
@@ -127,7 +130,7 @@ const checkToken = async (req, res) => {
     if (validToken) {
         res.status(200).json('Token válido');
     } else {
-        res.status(403).json('Algo salio mal');
+        res.status(404).json('Algo salio mal');
     }
 }
 
@@ -139,7 +142,11 @@ const newPassword = async (req, res) => {
     const user = await User.findOne({ token });
 
     if (!user) {
-        return res.status(403).json('Algo salio mal');
+        return res.status(404).json('Algo salio mal');
+    }
+
+    if(user.verificada === false) {
+        return res.status(400).json('Su cuenta no ha sido verificada');
     }
 
     try {
