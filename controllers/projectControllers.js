@@ -28,18 +28,41 @@ const addProject = async (req, res) => {
 }
 
 const getProjects = async (req, res) => {
-
-    const projects = await Project.find().where('usuario').equals(req.user);
-
-    if (!projects) {
-        return res.json({ status: 404, msg: 'Sin resultados' });
+    
+    try {
+        const projects = await Project.aggregate([
+            {
+              $match: { usuario: new mongoose.Types.ObjectId(req.user._id) }
+            }, {
+              $lookup: {
+                from: 'users', 
+                localField: 'usuario', 
+                foreignField: '_id', 
+                as: 'user'
+              }
+            }, {
+              $project: {
+                nombre: '$nombre', 
+                clave: '$clave', 
+                descripcion: '$descripcion', 
+                _id: '$user._id', 
+                fecha: '$fecha_creacion',
+                usuario: '$user.nombre', 
+                email: '$user.email'
+              }
+            }
+          ])
+            // .find()
+            // .where('usuario')
+            // .equals(req.user)
+            // .select('-columnas -__v');
+    
+        res.status(200).json(projects);
+        
+    } catch (error) {
+        console.log({ error });
     }
 
-    if (projects.usuario._id.toString() !== req.user._id.toString()) {
-        return res.json({ status: 403, msg: 'Acción no válida' });
-    }
-
-    res.json({ msg: projects });
 }
 
 const getProject = async (req, res) => {

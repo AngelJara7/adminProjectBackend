@@ -65,6 +65,7 @@ const getTasksByProject = async (req, res) => {
 
         return res.json({ status: 200, msg: tasks });
     } catch (error) {
+        console.log(error);
         return res.json({ status: 500, msg: error });
     }
 }

@@ -128,7 +128,7 @@ const checkToken = async (req, res) => {
     const validToken = await User.findOne({ token });
     
     if (validToken) {
-        res.status(200).json('Token válido');
+        res.status(200).json(validToken.nombre);
     } else {
         res.status(404).json('Algo salio mal');
     }
