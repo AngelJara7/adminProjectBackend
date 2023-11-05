@@ -4,10 +4,10 @@ import mongoose from "mongoose";
 // Funciones para administrar Proyectos
 const addProject = async (req, res) => {
     
-    const projectsExist = await Project.findOne({ usuario: req.user._id, nombre: req.body.nombre });
+    const projecteExist = await Project.findOne({ usuario: req.user._id, nombre: req.body.nombre });
 
-    if (projectsExist) {
-        return res.json({ status: 403, msg: `El proyecto '${req.body.nombre}' ya existe` });
+    if (projecteExist) {
+        return res.status(400).json(`El proyecto '${req.body.nombre}' ya existe`);
     }
 
     try {
@@ -19,11 +19,11 @@ const addProject = async (req, res) => {
             { nombre: 'Finalizada' }
         ];
 
-        const newProject = await project.save();
+        await project.save();
 
-        res.json({ status: 200, msg: newProject });
+        res.status(200).json('Proyecto creado');
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json('Algo salio mal, no se pudo crear el proyecto');
     }
 }
 
@@ -51,16 +51,13 @@ const getProjects = async (req, res) => {
                 email: '$user.email'
               }
             }
-          ])
-            // .find()
-            // .where('usuario')
-            // .equals(req.user)
-            // .select('-columnas -__v');
+          ]);
     
-        res.status(200).json(projects);
+        return res.status(200).json(projects);
         
     } catch (error) {
         console.log({ error });
+        return res.status(500).json('Ocurrio un error al obtener los proyectos');
     }
 
 }
