@@ -15,12 +15,12 @@ const checkAuth = async (req, res, next) => {
             return next();
 
         } catch (error) {
-            return res.json({ status: 403, msg: 'Token no válido' });
+            return res.status(403).json('Token no válido');
         }
     }
 
     if (!token) {
-        return res.json({ status: 403, msg: 'Sesión no válida' });
+        return res.status(403).json('Sesión no válida');
     }
 
     next();

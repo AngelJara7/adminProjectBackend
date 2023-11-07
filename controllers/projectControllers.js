@@ -23,7 +23,7 @@ const addProject = async (req, res) => {
 
         res.status(200).json('Proyecto creado');
     } catch (error) {
-        return res.status(500).json('Algo salio mal, no se pudo crear el proyecto');
+        return res.status(500).json('Algo salió mal, no se pudo crear el proyecto');
     }
 }
 
