@@ -21,7 +21,7 @@ const addProject = async (req, res) => {
 
         await project.save();
 
-        res.status(200).json('Proyecto creado');
+        return res.status(200).json('Proyecto creado');
     } catch (error) {
         return res.status(500).json('Algo salió mal, no se pudo crear el proyecto');
     }
@@ -42,16 +42,17 @@ const getProjects = async (req, res) => {
               }
             }, {
               $project: {
+                _id: "$_id",
                 nombre: '$nombre', 
                 clave: '$clave', 
                 descripcion: '$descripcion', 
-                _id: '$user._id', 
+                user: '$user._id', 
                 fecha: '$fecha_creacion',
                 usuario: '$user.nombre', 
                 email: '$user.email'
               }
             }
-          ]);
+          ]).sort({ _id: 1 });
     
         return res.status(200).json(projects);
         

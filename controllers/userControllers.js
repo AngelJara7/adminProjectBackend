@@ -178,6 +178,27 @@ const updatePassword = async (req, res) => {
     } else {
         return res.json({ msg: 'Contraseña actual incorrecta' });
     }
+
+}
+
+const savePhoto = async (req, res) => {
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+        return res.status(404).json('No se encontro al usuario');
+    }
+
+    user.foto = req.file.path;
+
+    try {
+        await user.save();
+
+        return res.status(200).json('Imagen guardada');
+    } catch (error) {
+        console.log({error});
+        return res.ststus(500).json('Algó salio mal');
+    }
 }
 
 export {
@@ -188,5 +209,6 @@ export {
     changePassword,
     checkToken,
     newPassword,
-    updatePassword
+    updatePassword,
+    savePhoto
 };

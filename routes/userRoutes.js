@@ -8,9 +8,11 @@ import {
     changePassword,
     checkToken, 
     newPassword,
-    updatePassword, } 
+    updatePassword,
+    savePhoto, } 
     from "../controllers/userControllers.js";
 import checkAuth from "../middleware/checkAuth.js";
+import upload from "../libs/multer.js";
 
 // Rutas Públicas
 router.post('/register', register);
@@ -25,6 +27,8 @@ router.get('/profile', checkAuth, profile);
 
 // Pendiente
 // router.put('/profile/:id', checkAuth, updateProfile);
+
+router.put('/upload-img', checkAuth, upload.single('image'), savePhoto);
 
 router.put('/update-password', checkAuth, updatePassword);
 
