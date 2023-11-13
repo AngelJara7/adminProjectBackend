@@ -46,10 +46,12 @@ const getProjects = async (req, res) => {
                 nombre: '$nombre', 
                 clave: '$clave', 
                 descripcion: '$descripcion', 
-                user: '$user._id', 
                 fecha: '$fecha_creacion',
-                usuario: '$user.nombre', 
-                email: '$user.email'
+                usuario: {
+                    _id: '$user._id', 
+                    nombre: '$user.nombre', 
+                    email: '$user.email'
+                }
               }
             }
           ]).sort({ _id: 1 });

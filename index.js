@@ -52,4 +52,9 @@ io.on('connection', (socket) => {
         console.log('Proyecto creado');
         socket.emit('project created');
     });
+
+    socket.on('load img', () => {
+        console.log('Cargando IMG');
+        socket.emit('img loaded');
+    });
 });
