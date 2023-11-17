@@ -32,29 +32,34 @@ const getProjects = async (req, res) => {
     try {
         const projects = await Project.aggregate([
             {
-              $match: { usuario: new mongoose.Types.ObjectId(req.user._id) }
-            }, {
-              $lookup: {
-                from: 'users', 
-                localField: 'usuario', 
-                foreignField: '_id', 
-                as: 'user'
-              }
-            }, {
-              $project: {
-                _id: "$_id",
-                nombre: '$nombre', 
-                clave: '$clave', 
-                descripcion: '$descripcion', 
-                fecha: '$fecha_creacion',
-                usuario: {
-                    _id: '$user._id', 
-                    nombre: '$user.nombre', 
-                    email: '$user.email'
+                $match: { 
+                    usuario: new mongoose.Types.ObjectId(req.user._id),
+                    nombre: { 
+                        $regex: req.query.project || '', $options: 'i'
+                    } 
                 }
-              }
+            }, {
+                $lookup: {
+                    from: 'users', 
+                    localField: 'usuario', 
+                    foreignField: '_id', 
+                    as: 'user'
+                }
+            }, {
+                $project: {
+                    _id: "$_id",
+                    nombre: '$nombre', 
+                    clave: '$clave', 
+                    descripcion: '$descripcion', 
+                    fecha: '$fecha_creacion',
+                    usuario: {
+                        _id: '$user._id', 
+                        nombre: '$user.nombre', 
+                        email: '$user.email'
+                    }
+                }
             }
-          ]).sort({ _id: 1 });
+        ]).sort({ _id: 1 });
     
         return res.status(200).json(projects);
         
@@ -67,17 +72,22 @@ const getProjects = async (req, res) => {
 
 const getProject = async (req, res) => {
     
-    const project = await Project.findById(req.params.id_project);
+    try {
+        const project = await Project.findById(req.user._id);
+        
+        if (!project) {
+            return res.json({ status: 404, msg: 'Sin resultados' });
+        }
     
-    if (!project) {
-        return res.json({ status: 404, msg: 'Sin resultados' });
+        if (project.usuario._id.toString() !== req.user._id.toString()) {
+            return res.json({ status: 403, msg: 'Acción no válida' });
+        }
+        
+        res.json({ status: 200, msg: project });
+    } catch (error) {
+        console.log({error});
     }
 
-    if (project.usuario._id.toString() !== req.user._id.toString()) {
-        return res.json({ status: 403, msg: 'Acción no válida' });
-    }
-
-    res.json({ status: 200, msg: project });
 }
 
 const updateProject = async (req, res) => {
@@ -130,18 +140,18 @@ const deleteProject = async (req, res) => {
     const project = await Project.findById(req.params.id_project);
 
     if (!project) {
-        return res.json({ status: 403, msg: 'Sin resultados' });
+        return res.status(404).json('El proyecyo indicado no existe');
     }
 
     if (project.usuario._id.toString() !== req.user._id.toString()) {
-        return res.json({ status: 403, msg: 'Acción no válida' });
+        return res.status(404).json('No está autorizado para realizar esta acción');
     }
 
     try {
         await project.deleteOne();
-        res.json({ status: 200, msg: 'Proyecto eliminado' });
+        res.status(200).json('Proyecto eliminado');
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.jstatu(500).json('Algó salio mal, no se pudo eliminar el proyecto');
     }
 }
 

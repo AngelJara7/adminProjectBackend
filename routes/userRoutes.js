@@ -5,6 +5,7 @@ import {
     confirmAccount,
     authenticate,
     profile, 
+    editProfile, 
     changePassword,
     checkToken, 
     newPassword,
@@ -26,7 +27,7 @@ router.route('/reset-password/:token').get(checkToken).post(newPassword);
 router.get('/profile', checkAuth, profile);
 
 // Pendiente
-// router.put('/profile/:id', checkAuth, updateProfile);
+router.put('/profile', checkAuth, editProfile);
 
 router.put('/upload-img', checkAuth, upload.single('image'), savePhoto);
 

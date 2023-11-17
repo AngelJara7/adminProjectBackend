@@ -90,6 +90,38 @@ const profile = async (req, res) => {
     res.status(200).json({user, token});
 }
 
+const editProfile = async(req, res) => {
+    const { _id, nombre, email } = req.body;
+
+    const users = await User.find();
+    
+    let cont = 0;
+    
+    while (cont < users.length) {
+        if (users[cont].email.toUpperCase() === email.toUpperCase() 
+        && users[cont]._id.toString() !== _id.toString()) {
+            return res.status(400).json(`El email '${email}' esta vinculado a otra cuenta`);
+        }
+        cont++;
+    }
+
+    const user = await User.findById(_id);
+
+    if (!user) return res.status(400).json('Usuario no encontrado');
+
+    user.nombre = nombre;
+    user.email = email;
+
+    try {
+        const updateUser = await user.save();
+
+        res.status(200).json({ msg: 'Perfil actualizado', user: updateUser });
+    } catch (error) {
+        console.log({error});
+        res.status().json('Algó salio mal, no se pudo actualizar el perfil');
+    }
+}
+
 // Realiza la solicitud de cambio de contraseña si el usuario la olvido
 const changePassword = async (req, res) => {
     const { email } = req.body;
@@ -189,14 +221,15 @@ const savePhoto = async (req, res) => {
         return res.status(404).json('No se encontro al usuario');
     }
 
-    user.foto = req.file.path;
+    req.file 
+    ? user.foto = req.file.path 
+    : user.foto = null;
 
     try {
         await user.save();
 
-        return res.status(200).json('Imagen guardada');
+        return res.status(200).json('Imagen cambiada');
     } catch (error) {
-        console.log({error});
         return res.ststus(500).json('Algó salio mal');
     }
 }
@@ -206,6 +239,7 @@ export {
     confirmAccount,
     authenticate,
     profile,
+    editProfile,
     changePassword,
     checkToken,
     newPassword,

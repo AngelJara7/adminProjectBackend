@@ -43,18 +43,14 @@ io.on('connection', (socket) => {
     console.log('Conectado a Socket.io');
 
     socket.on('load projects', (user) => {
-        console.log('Cargando proyectos');
         socket.join(user);
     });
 
-    socket.on('create project', () => {
-        // const user = user.id;
-        console.log('Proyecto creado');
-        socket.emit('project created');
+    socket.on('project', (type) => {
+        socket.emit('project created', type);
     });
 
-    socket.on('load img', () => {
-        console.log('Cargando IMG');
-        socket.emit('img loaded');
+    socket.on('load img', (type) => {
+        socket.emit('img loaded', type);
     });
 });

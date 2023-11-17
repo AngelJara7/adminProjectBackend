@@ -82,7 +82,7 @@ const updateTask = async(req, res) => {
     /* Evitar duplicados en los nombre de las tareas por proyecto.
       Se compara el nombre de la tarea y su id. de ser cierta la comparacion significa 
       que ya existe una tarea con el mismo nombre y no se puede cambiar el nombre de la tarea indicada */
-      while (cont < tasks.length) {
+    while (cont < tasks.length) {
         if (tasks[cont].nombre.toUpperCase() === nombre.toUpperCase() 
         && tasks[cont]._id.toString() !== id_task.toString()) {
             return res.json({ status: 403, msg: `Ya existe una tarea registrada con este nombre` });
