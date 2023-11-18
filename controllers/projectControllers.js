@@ -140,7 +140,7 @@ const deleteProject = async (req, res) => {
     const project = await Project.findById(req.params.id_project);
 
     if (!project) {
-        return res.status(404).json('El proyecyo indicado no existe');
+        return res.status(404).json('El proyecto indicado no existe');
     }
 
     if (project.usuario._id.toString() !== req.user._id.toString()) {
