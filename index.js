@@ -46,11 +46,11 @@ io.on('connection', (socket) => {
         socket.join(user);
     });
 
-    socket.on('editing projects', () => {
-        socket.emit('edited project');
+    socket.on('project', (type) => {
+        socket.emit('project created', type);
     });
 
-    socket.on('edit profile', () => {
-        socket.emit('edited profile');
+    socket.on('load img', (type) => {
+        socket.emit('img loaded', type);
     });
 });
