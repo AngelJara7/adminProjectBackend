@@ -1,4 +1,5 @@
 import Project from "../models/Project.js";
+import User from "../models/User.js";
 import mongoose from "mongoose";
 
 // Funciones para administrar Proyectos
@@ -73,19 +74,20 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
     
     try {
-        const project = await Project.findById(req.user._id);
+        const project = await Project.findOne({ nombre: req.params.id_project });
         
         if (!project) {
-            return res.json({ status: 404, msg: 'Sin resultados' });
+            return res.status(400).json('Proyecto no encontrado');
         }
     
         if (project.usuario._id.toString() !== req.user._id.toString()) {
-            return res.json({ status: 403, msg: 'Acción no válida' });
+            return res.status(400).json('Acción no válida');
         }
         
-        res.json({ status: 200, msg: project });
+        res.status(200).json(project);
+        
     } catch (error) {
-        console.log({error});
+        res.status(500).json('Algó salio mal');
     }
 
 }
@@ -237,6 +239,39 @@ const deleteColumn = async (req, res) => {
     }
 }
 
+const addCollaborator = async (req, res) => {
+
+    const project = await Project.findById(req.params.id_project);
+    if (!project) {
+        return res.status(400).json('Proyecto no encontrado');
+    }
+
+    if (project.usuario.toString() !== req.user._id.toString()) {
+        return res.status(400).json('Acción no valida');
+    }
+
+    const user = await User.findOne({ email: req.body.email }).select(
+        "-password, -verificada, -token, -foto, -__v");
+
+    if (!user) {
+        return res.status(400).json('Ususario no encontrado');
+    }
+
+    if (project.usuario.id.toString() === req.user._id.toString()) {
+        return res.status(400).json('El creador del proyecto no puede ser un colaborador');
+    }
+
+    if (project.colaboradores.includes(user._id)) {
+        return res.status(400).json(`El usuario '${user.email}' ya pertenece al proyecto`);
+    }
+
+    project.colaboradores.push({user, rol: req.body.rol});
+
+    await project.save();
+    return res.status(200).json(`El usuario '${user.email}' ha sido agregado al proyecto`);
+
+}
+
 // Funciones para administrar Tareas por Columnas y Proyectos
 const projectTasks = async (req, res) => {
     const projects = await Project.aggregate([
@@ -265,6 +300,7 @@ export {
     deleteProject,
     addColumn, 
     updateColumn, 
-    deleteColumn, 
+    deleteColumn,
+    addCollaborator, 
     projectTasks
 };

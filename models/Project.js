@@ -24,6 +24,20 @@ const projectSchema = mongoose.Schema({
             }
         },
     ],
+    colaboradores: [
+        {
+            usuario: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+            },
+            rol: {
+                type: String,
+                enum: ['admin', 'colaborador'],
+                default: 'colaborador',
+                required: true
+            }
+        }
+    ],
     fecha_creacion: {
         type: Date,
         default: new Date()
