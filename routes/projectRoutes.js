@@ -9,7 +9,10 @@ import {
     addColumn, 
     updateColumn, 
     deleteColumn, 
+    searchCollaborator, 
     addCollaborator, 
+    updateCollaborator, 
+    deleteColaborator, 
     projectTasks, } 
     from "../controllers/projectControllers.js";
 import checkAuth from "../middleware/checkAuth.js";
@@ -22,6 +25,9 @@ router.route('/tasks/:id_project').get(checkAuth, projectTasks);
 router.route('/columns/:id_project').post(checkAuth, addColumn);
 router.route('/columns/:id_column/:id_project').put(checkAuth, updateColumn).delete(checkAuth, deleteColumn);
 
-router.route('/colaboradores/:id_project').post(checkAuth, addCollaborator);
+router.post('/collaborators', checkAuth, searchCollaborator);
+router.post('/collaborators/:id_project', checkAuth, addCollaborator);
+router.put('/collaborators/:id_project', checkAuth, updateCollaborator);
+router.post('/delete-collaborator/:id_project', checkAuth, deleteColaborator);
 
 export default router;

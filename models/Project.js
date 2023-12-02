@@ -29,10 +29,11 @@ const projectSchema = mongoose.Schema({
             usuario: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'User',
+                required: true
             },
             rol: {
                 type: String,
-                enum: ['admin', 'colaborador'],
+                enum: ['Administrador', 'Colaborador'],
                 default: 'colaborador',
                 required: true
             }

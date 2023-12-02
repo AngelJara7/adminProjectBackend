@@ -31,37 +31,50 @@ const addProject = async (req, res) => {
 const getProjects = async (req, res) => {
     
     try {
-        const projects = await Project.aggregate([
-            {
-                $match: { 
-                    usuario: new mongoose.Types.ObjectId(req.user._id),
-                    nombre: { 
-                        $regex: req.query.project || '', $options: 'i'
-                    } 
-                }
-            }, {
-                $lookup: {
-                    from: 'users', 
-                    localField: 'usuario', 
-                    foreignField: '_id', 
-                    as: 'user'
-                }
-            }, {
-                $project: {
-                    _id: "$_id",
-                    nombre: '$nombre', 
-                    clave: '$clave', 
-                    descripcion: '$descripcion', 
-                    fecha: '$fecha_creacion',
-                    usuario: {
-                        _id: '$user._id', 
-                        nombre: '$user.nombre', 
-                        email: '$user.email'
-                    }
-                }
+        // const projects = await Project.aggregate([
+        //     {
+        //         $match: { 
+        //             $or: [
+        //                 { usuario: new mongoose.Types.ObjectId(req.user._id) }, 
+        //                 { colaboradores: new mongoose.Types.ObjectId(req.user._id) }
+        //             ],
+        //             nombre: { 
+        //                 $regex: req.query.project || '', $options: 'i'
+        //             }
+        //         }
+        //     }, {
+        //         $lookup: {
+        //             from: 'users', 
+        //             localField: 'usuario', 
+        //             foreignField: '_id', 
+        //             as: 'user'
+        //         }
+        //     }, {
+        //         $project: {
+        //             _id: "$_id",
+        //             nombre: '$nombre', 
+        //             clave: '$clave', 
+        //             descripcion: '$descripcion', 
+        //             fecha: '$fecha_creacion',
+        //             usuario: {
+        //                 _id: '$user._id', 
+        //                 nombre: '$user.nombre', 
+        //                 email: '$user.email'
+        //             }
+        //         }
+        //     }
+        // ]).sort({ _id: 1 });
+
+        const projects = await Project.find({
+            $or: [
+                { usuario: new mongoose.Types.ObjectId(req.user._id) },
+                { 'colaboradores.usuario': new mongoose.Types.ObjectId(req.user._id) }
+            ],
+            nombre: {
+                $regex: req.query.id_project || '', $options: 'i'
             }
-        ]).sort({ _id: 1 });
-    
+        }).populate('usuario', '_id nombre email foto').sort({ _id: 1 });
+        
         return res.status(200).json(projects);
         
     } catch (error) {
@@ -74,18 +87,26 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
     
     try {
-        const project = await Project.findOne({ nombre: req.params.id_project });
+        const project = await Project.findOne({ nombre: req.params.id_project })
+            .populate('usuario', '_id nombre email foto')
+            .populate({
+                path:'colaboradores', 
+                populate: { path: 'usuario', select: '_id nombre email foto' }
+            });
         
         if (!project) {
             return res.status(400).json('Proyecto no encontrado');
         }
     
-        if (project.usuario._id.toString() !== req.user._id.toString()) {
+        if (project.usuario._id.toString() !== req.user._id.toString() &&
+            !project.colaboradores.some(
+                colaborador => colaborador.usuario._id.toString() === req.user._id.toString()
+            )) {
             return res.status(400).json('Acción no válida');
         }
         
         res.status(200).json(project);
-        
+
     } catch (error) {
         res.status(500).json('Algó salio mal');
     }
@@ -239,37 +260,108 @@ const deleteColumn = async (req, res) => {
     }
 }
 
+const searchCollaborator = async (req, res) => {
+    
+    const users = await User.find({ 
+        email: 
+        {
+            $regex: req.body.email || '', $options: 'i' 
+        }
+    }).select("-password -verificada -token -foto -__v");
+    
+    if (!users) {
+        return res.status(400).json('Usuario no encontrado');
+    }
+
+    res.status(200).json(users);
+}
+
 const addCollaborator = async (req, res) => {
 
+    try {
+        const project = await Project.findById(req.params.id_project);
+        if (!project) {
+            return res.status(400).json('Proyecto no encontrado');
+        }
+        
+        if (project.usuario.toString() !== req.user._id.toString() &&
+            !project.colaboradores.some(
+                colaborador => colaborador.usuario._id.toString() === req.user._id.toString()
+                && colaborador.rol === 'Administrador'
+            )) {
+            return res.status(400).json('No esta autorizado para realizar esta acción');
+        }
+        
+        const user = await User.findOne({ email: req.body.usuario.email }).select(
+            "-password -verificada -token -foto -__v");
+        
+        if (!user) {
+            return res.status(400).json('Ususario no encontrado');
+        }
+        
+        if (project.usuario.toString() === user._id.toString()) {
+            return res.status(400).json('El creador del proyecto no puede ser un colaborador');
+        }
+        
+        if (project.colaboradores.includes(user._id)) {
+            return res.status(400).json(`El usuario '${user.email}' ya pertenece al proyecto`);
+        }
+        
+        project.colaboradores.push({ usuario: user, rol: req.body.rol });
+        // project.colaboradores.push(user);
+        await project.save();
+        return res.status(200).json(`El usuario '${user.email}' ha sido agregado al proyecto '${project.nombre}'`);
+    } catch (error) {
+        return res.status(500).json('Algo salio mal, no se pudo agregar al colaborador');
+    }
+
+}
+
+const updateCollaborator = async(req, res) => {
+
+    try {
+        const project = await Project.findById(req.params.id_project);
+        if (!project) {
+            return res.status(400).json('Proyecto no encontrado');
+        }
+
+        if (project.usuario.toString() !== req.user.id.toString()) {
+            return res.status(400).json('No esta autorizado para realizar esta acción');
+        }
+
+        const user = project.colaboradores.find(
+            colaborador => colaborador.usuario._id.toString() === req.body.usuario._id.toString());
+        if (!user) {
+            return res.status(400).json(`El usuario '${req.body.usuario.email}' no pertenece al proyecto`);
+        }
+        
+        user.rol = req.body.rol;
+        await project.save();
+        return res.status(200).json(`Se ha cambiado el rol del usuario '${req.body.usuario.email}'`);
+    } catch (error) {
+        return res.status(500).json(error);
+    }
+}
+
+const deleteColaborator = async (req, res) => {
+    
     const project = await Project.findById(req.params.id_project);
+
     if (!project) {
         return res.status(400).json('Proyecto no encontrado');
     }
 
+    if (project.usuario.toString() === req.body.usuario._id.toString()) {
+        return res.status(400).json('El creador del proyecto no puede ser eliminado del mismo');
+    }
+
     if (project.usuario.toString() !== req.user._id.toString()) {
-        return res.status(400).json('Acción no valida');
+        return res.status(400).json('No esta autorizado para realizar esta acción');
     }
 
-    const user = await User.findOne({ email: req.body.email }).select(
-        "-password, -verificada, -token, -foto, -__v");
-
-    if (!user) {
-        return res.status(400).json('Ususario no encontrado');
-    }
-
-    if (project.usuario.id.toString() === req.user._id.toString()) {
-        return res.status(400).json('El creador del proyecto no puede ser un colaborador');
-    }
-
-    if (project.colaboradores.includes(user._id)) {
-        return res.status(400).json(`El usuario '${user.email}' ya pertenece al proyecto`);
-    }
-
-    project.colaboradores.push({user, rol: req.body.rol});
-
+    project.colaboradores.pull(req.body.usuario._id);
     await project.save();
-    return res.status(200).json(`El usuario '${user.email}' ha sido agregado al proyecto`);
-
+    return res.status(200).json(`Se ha eliminado a '${req.body.usuario.email}' del proyecto '${project.nombre}'`);
 }
 
 // Funciones para administrar Tareas por Columnas y Proyectos
@@ -301,6 +393,9 @@ export {
     addColumn, 
     updateColumn, 
     deleteColumn,
+    searchCollaborator, 
     addCollaborator, 
+    updateCollaborator, 
+    deleteColaborator, 
     projectTasks
 };
