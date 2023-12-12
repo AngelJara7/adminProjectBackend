@@ -21,7 +21,13 @@ const projectSchema = mongoose.Schema({
             nombre: {
                 type: String,
                 required: true
-            }
+            },
+            tareas: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Task'
+                }
+            ]
         },
     ],
     colaboradores: [
@@ -37,6 +43,12 @@ const projectSchema = mongoose.Schema({
                 default: 'colaborador',
                 required: true
             }
+        }
+    ],
+    tareas: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Task'
         }
     ],
     fecha_creacion: {

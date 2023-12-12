@@ -23,7 +23,7 @@ router.route('/:id_project').get(checkAuth, getProject).put(checkAuth, updatePro
 router.route('/tasks/:id_project').get(checkAuth, projectTasks);
 
 router.route('/columns/:id_project').post(checkAuth, addColumn);
-router.route('/columns/:id_column/:id_project').put(checkAuth, updateColumn).delete(checkAuth, deleteColumn);
+router.route('/columns/:id_column/:id_project').put(checkAuth, updateColumn).post(checkAuth, deleteColumn);
 
 router.post('/collaborators', checkAuth, searchCollaborator);
 router.post('/collaborators/:id_project', checkAuth, addCollaborator);

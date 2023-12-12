@@ -1,3 +1,4 @@
+import { populate } from "dotenv";
 import Project from "../models/Project.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
@@ -15,7 +16,7 @@ const addProject = async (req, res) => {
         const project = new Project(req.body);
         project.usuario = req.user._id;
         project.columnas = [ // Columnas se agregan al proyecto por defecto
-            { nombre: 'Sin iniciar' },
+            { nombre: 'Por hacer' },
             { nombre: 'En curso' },
             { nombre: 'Finalizada' }
         ];
@@ -73,7 +74,8 @@ const getProjects = async (req, res) => {
             nombre: {
                 $regex: req.query.id_project || '', $options: 'i'
             }
-        }).populate('usuario', '_id nombre email foto').sort({ _id: 1 });
+        }).populate('usuario', '_id nombre email foto').sort({ _id: 1 })
+        .select('_id nombre descripcion usuario clave');
         
         return res.status(200).json(projects);
         
@@ -89,10 +91,22 @@ const getProject = async (req, res) => {
     try {
         const project = await Project.findOne({ nombre: req.params.id_project })
             .populate('usuario', '_id nombre email foto')
+            // .populate({ path: 'tareas', select: '-__v', populate: [
+            //     { path: 'usuario', select: '_id nombre email foto' },
+            //     { path: 'responsable', select: '_id nombre email foto' },
+            // ]})
             .populate({
                 path:'colaboradores', 
                 populate: { path: 'usuario', select: '_id nombre email foto' }
-            });
+            })
+            .populate({
+                path: 'columnas',
+                populate: { path: 'tareas', populate: [
+                    { path: 'usuario', select: '_id nombre email foto' },
+                    { path: 'responsable', select: '_id nombre email foto' }
+                ]}
+            })
+            .select('-__v');
         
         if (!project) {
             return res.status(400).json('Proyecto no encontrado');
@@ -104,10 +118,11 @@ const getProject = async (req, res) => {
             )) {
             return res.status(400).json('Acción no válida');
         }
-        
+        // console.log({ project });
         res.status(200).json(project);
 
     } catch (error) {
+        console.log({error});
         res.status(500).json('Algó salio mal');
     }
 
@@ -180,83 +195,93 @@ const deleteProject = async (req, res) => {
 
 // Funciones para administrar Columnas por Proyecto
 const addColumn = async (req, res) => {
-    const { nombre } = req.body;
 
-    // Verifica que el proyecto al que se agrega la columna existe
     const project = await Project.findById(req.params.id_project);
 
     if (!project) {
-        return res.json({ status:403, msg: 'Sin resultados' });
+        return res.status(400).json('Proyecto no encontrado');
     }
 
-    // Verifica si el nombre de la columna que se agrega al proyecto existe
-    if (project.columnas.some(e => e.nombre === nombre)) {
-        return res.json({ status:403, msg: `La columna '${nombre}' ya existe` });
+    if (project.usuario.toString() !== req.user.id.toString()) {
+        return res.status(400).json('No esta autorizado para realizar esta acción');
+    }
+
+    if (project.columnas.some(e => e.nombre === req.body.nombre)) {
+        return res.status(400).json(`La columna '${req.body.nombre}' ya existe`);
     }
 
     try {
-        const newColumn = await Project.updateOne({ _id: id }, { $push: { columnas: { nombre } } });
-
-        return res.json({ status: 200, msg: newColumn });
+        project.columnas.push({ nombre: req.body.nombre });
+        await project.save();
+        
+        return res.status(200).json(`Se ha agregado la columna '${req.body.nombre}'`);
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json('Algo salio mal, no se pudo crear la columna');
     }
 }
 
 const updateColumn = async (req, res) => {
-    const { id_column, id_project } = req.params;
-    const { nombre } = req.body;
 
-    const project = await Project.findById(id_project);
-    const columnas = project.columnas;
-    let cont = 0;
-    // Verifica si el proyecto al que pertenece la columna existe
+    const project = await Project.findById(req.params.id_project);
+
     if (!project) {
-        return res.json({ status:403, msg: 'Sin resultados' });
+        return res.status(400).json('Proyecto no encontrado');
     }
-    // Verifica si el nombre de la columna que se actualiza existe dentro del proyecto
-    // if (project.columnas.some(e => e.nombre === nombre) && project.columnas.some(e => e._id.toString() !== id_column.toString())) {
-    //     return res.json({ status:403, msg: `La columna '${nombre}' ya existe en el Proyecto: ${project.nombre}`, project });
-    // }
-    
-    while (cont < columnas.length) {
-        if (columnas[cont].nombre.toUpperCase() === nombre.toUpperCase() 
-        && columnas[cont]._id.toString() !== id_column.toString()) {
-            return res.json({ status: 403, msg: `La columna ${nombre} ya existe`});
-        }
-        cont ++;
+
+    if (project.usuario.toString() !== req.user.id.toString()) {
+        return res.status(400).json('No esta autorizado para realizar esta acción');
+    }
+
+    if (project.columnas.some(e => e.nombre === req.body.nombre)) {
+        return res.status(400).json(`La columna '${req.body.nombre}' ya existe`);
+    }
+
+    if (project.columnas.some(columna => columna.nombre === req.body.nombre)) {
+        return res.status(400).json(`La columna '${req.body.nombre}' ya existe en el proyecto '${project.nombre}'`);
     }
 
     try {
-        const updateColumn = await Project.updateOne(
-            { _id: id_project, "columnas._id": id_column }, { $set: { "columnas.$.nombre": nombre } });
+        const column = project.columnas.find(columna => columna.id === req.params.id_column);
         
-        return res.json({ status: 200, msg: updateColumn });
+        column.nombre = req.body.nombre;
+        await project.save();
+        
+        return res.status(200).json(`Se ha cambiado el nombre de la columna en el proyecto '${project.nombre}'`);
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json('Algo solio mal, no se pudo cambiar el nombre de la columna');
     }
 }
 
 const deleteColumn = async (req, res) => {
-    const { id_column, id_project } = req.params;
 
-    const project = await Project.findById(id_project);
+    const project = await Project.findById(req.params.id_project);
     
-    // Verifica si el proyecto al que pertenece la columna existe
     if (!project) {
-        return res.json({ status:403, msg: 'Sin resultados' });
+        return res.status(400).json('Proyecto no encontrado');
     }
-    // Verifica si el id de la columna que se actualiza existe dentro del proyecto
-    if (!project.columnas.some(e => e.id === id_column)) {
-        return res.json({ status:404, msg: `Sin resultados` });
+
+    const deleteColumn = project.columnas.find(columna => columna.id === req.params.id_column);
+    
+    if (!deleteColumn) {
+        return res.status(400).json('Columna no encontrada');
     }
+
+    // *columna que guardara las tareas existentes de la columna a eliminar
+    const replaceColumn = project.columnas.find(columna => columna.id === req.body.columna);
+
+    if (!replaceColumn) {
+        return res.status(400).json('Algo solio mal, no hemos podido eliminar la columna. Intentalo de nuevo');
+    }
+    
+    replaceColumn.tareas = replaceColumn.tareas.concat(deleteColumn.tareas);
 
     try {
-        const updateColumn = await Project.updateOne({ _id: id_project }, { $pull: { columnas: { _id: id_column } } });
-        
-        return res.json({ status: 200, msg: updateColumn });
+        project.columnas.pull(req.params.id_column);
+
+        await project.save();
+        return res.status(200).json(`Se ha eliminado la columna en el proyecto '${project.nombre}'`);
     } catch (error) {
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json('Algo solio mal, no se pudo cambiar el nombre de la columna');
     }
 }
 
@@ -292,18 +317,18 @@ const addCollaborator = async (req, res) => {
             return res.status(400).json('No esta autorizado para realizar esta acción');
         }
         
-        const user = await User.findOne({ email: req.body.usuario.email }).select(
+        const user = await User.findOne({ email: req.body.email }).select(
             "-password -verificada -token -foto -__v");
         
         if (!user) {
-            return res.status(400).json('Ususario no encontrado');
+            return res.status(400).json('Usuario no encontrado');
         }
         
         if (project.usuario.toString() === user._id.toString()) {
             return res.status(400).json('El creador del proyecto no puede ser un colaborador');
         }
         
-        if (project.colaboradores.includes(user._id)) {
+        if (project.colaboradores.find(colaborador => colaborador.usuario.toString() === user._id.toString())) {
             return res.status(400).json(`El usuario '${user.email}' ya pertenece al proyecto`);
         }
         
@@ -359,7 +384,15 @@ const deleteColaborator = async (req, res) => {
         return res.status(400).json('No esta autorizado para realizar esta acción');
     }
 
-    project.colaboradores.pull(req.body.usuario._id);
+    const user = project.colaboradores.find(
+        colaborador => colaborador.usuario._id.toString() === req.body.usuario._id.toString()
+    );
+    
+    if (!user) {
+        return res.status(400).json(`El usuario '${req.body.usuario.email}' no pertenece al proyecto`);
+    }
+
+    project.colaboradores.pull(user);
     await project.save();
     return res.status(200).json(`Se ha eliminado a '${req.body.usuario.email}' del proyecto '${project.nombre}'`);
 }

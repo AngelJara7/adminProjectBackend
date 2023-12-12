@@ -1,5 +1,6 @@
 import Task from "../models/Task.js";
 import Project from "../models/Project.js";
+import User from "../models/User.js";
 import mongoose from "mongoose";
 
 const addTask = async (req, res) => {
@@ -8,26 +9,50 @@ const addTask = async (req, res) => {
     
     const project = await Project.findById(id_project);
     
-    if (!project || !project.columnas.some(e => e.id === id_column)) {
-        return res.json({ status: 403, msg: 'El proyecto o la columna no existe' });
+    if (!project) {
+        return res.status(400).json('El proyecto no existe');
+    }
+    console.log(project.columnas);
+    const column = project.columnas.find(column => column._id.toString() === id_column.toString());
+    console.log({column});
+    if (!column) {
+        return res.status(400).json('La columna no existe');
+    }
+    if (project.usuario.toString() !== req.user._id.toString()) {
+        return res.status(400).json('No esta autorizado para realizar esta acción');
+    }
+
+    const user = await User.findById(req.body.responsable).select(
+        "-password -verificada -token -foto -__v");
+    
+    if (!user) {
+        return res.status(400).json('Usuario no encontrado');
+    }
+
+    if (!project.colaboradores.find(colaborador => colaborador.usuario.toString() === user._id.toString())) {
+        return res.status(400).json(`El usuario '${user.email}' no pertenece al proyecto`);
     }
     
     const taskExist = await Task.findOne({ proyecto: id_project, nombre });
-
+    
     if (taskExist) {
-        return res.json({ status: 403, msg: `La tarea '${nombre}' ya existe` });
+        return res.status(400).json(`La tarea '${nombre}' ya existe`);
     }
 
     try {
         const task = await new Task(req.body);
-        task.usario = req.user._id;
+        task.usuario = req.user._id;
+        task.responsable = req.body.responsable;
         task.proyecto = id_project;
         task.columna = id_column;
 
         const newTask = await task.save();
+        project.tareas.push(newTask._id);
+        column.tareas.push(newTask._id);
+        await project.save();
         return res.json({ status: 200, msg: newTask });
     } catch (error) {
-        console.log(error);
+        console.log({error});
         return res.json({ status: 500, msg: error });
     }
 }

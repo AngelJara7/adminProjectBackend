@@ -11,13 +11,17 @@ const taskSchema = mongoose.Schema({
     },
     asignacion: {
         type: Date,
-        required: true
+        default: Date.now()
     },
     vencimiento: {
         type: Date,
-        required: true
+        required: true,
     },
     usuario: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
+    responsable: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
