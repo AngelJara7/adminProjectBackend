@@ -22,12 +22,12 @@ const projectSchema = mongoose.Schema({
                 type: String,
                 required: true
             },
-            tareas: [
-                {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Task'
-                }
-            ]
+            // tareas: [
+            //     {
+            //         type: mongoose.Schema.Types.ObjectId,
+            //         ref: 'Task'
+            //     }
+            // ]
         },
     ],
     colaboradores: [

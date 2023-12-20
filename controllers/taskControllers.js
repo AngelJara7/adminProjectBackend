@@ -1,65 +1,53 @@
 import Task from "../models/Task.js";
 import Project from "../models/Project.js";
 import User from "../models/User.js";
-import mongoose from "mongoose";
 
 const addTask = async (req, res) => {
-    const { nombre } = req.body;
-    const { id_project, id_column } = req.params;
-    
-    const project = await Project.findById(id_project);
+    const { nombre, proyecto, columna } = req.body;
+
+    const project = await Project.findById(proyecto._id).populate('tareas');
     
     if (!project) {
         return res.status(400).json('El proyecto no existe');
     }
-    console.log(project.columnas);
-    const column = project.columnas.find(column => column._id.toString() === id_column.toString());
-    console.log({column});
-    if (!column) {
-        return res.status(400).json('La columna no existe');
-    }
+
     if (project.usuario.toString() !== req.user._id.toString()) {
         return res.status(400).json('No esta autorizado para realizar esta acción');
     }
 
-    const user = await User.findById(req.body.responsable).select(
-        "-password -verificada -token -foto -__v");
+    if (project.tareas.find(task => task.nombre === nombre)) {
+        return res.status(400).json(`La tarea '${nombre}' ya existe en el proyecto ${project.nombre}`);
+    }
     
-    if (!user) {
-        return res.status(400).json('Usuario no encontrado');
+    if (!project.columnas.find(column => column._id.toString() === columna.toString())) {
+        return res.status(400).json('La columna no existe');
     }
 
-    if (!project.colaboradores.find(colaborador => colaborador.usuario.toString() === user._id.toString())) {
-        return res.status(400).json(`El usuario '${user.email}' no pertenece al proyecto`);
+    if (!project.colaboradores.find(colaborador => colaborador.usuario.toString() === req.body.responsable.toString())) {
+        return res.status(400).json(`El usuario colaborador no pertenece al proyecto '${project.nombre}'`);
     }
-    
-    const taskExist = await Task.findOne({ proyecto: id_project, nombre });
-    
-    if (taskExist) {
-        return res.status(400).json(`La tarea '${nombre}' ya existe`);
+
+    if (!project.colaboradores.find(colaborador => colaborador.usuario.toString() === req.body.usuario.toString())) {
+        return res.status(400).json(`El usuario informador no pertenece al proyecto '${project.nombre}'`);
     }
 
     try {
-        const task = await new Task(req.body);
-        task.usuario = req.user._id;
-        task.responsable = req.body.responsable;
-        task.proyecto = id_project;
-        task.columna = id_column;
+        const newTask = await Task.create(req.body);
 
-        const newTask = await task.save();
         project.tareas.push(newTask._id);
-        column.tareas.push(newTask._id);
+
         await project.save();
-        return res.json({ status: 200, msg: newTask });
+        return res.status(200).json(`Se ha agregado la tarea '${newTask.nombre}' al proyecto '${project.nombre}'`);
     } catch (error) {
-        console.log({error});
-        return res.json({ status: 500, msg: error });
+        return res.status(500).json('Algo salio mal, no se pudo crear la tarea');
     }
 }
 
 const getTask = async(req, res) => {
     
-    const task = await Task.findById(req.params.id_task);
+    const task = await Task.findById(req.params.id_task)
+        .populate('proyecto.columnas', 'nombre _id')
+        // .populate('proyecto')
 
     if (!task) {
         return res.json({ status: 403, msg: 'Sin resultados' });
@@ -72,74 +60,54 @@ const getTask = async(req, res) => {
     res.json({ status: 200, msg: task });
 }
 
-const getTasksByProject = async (req, res) => {
-    try {
-        const tasks = await Task.aggregate([
-            { $lookup: {
-                    from: 'projects', 
-                    localField: 'proyecto', 
-                    foreignField: '_id', 
-                    as: 'Project'
-                }
-            }, { $match: { proyecto: new mongoose.Types.ObjectId(req.params.id_project) } }
-        ]);
-    
-        if (!tasks) {
-            return res.json({ status: 403, msg: 'Sin resultados' });
-        }
-
-        return res.json({ status: 200, msg: tasks });
-    } catch (error) {
-        console.log(error);
-        return res.json({ status: 500, msg: error });
-    }
-}
-
 const updateTask = async(req, res) => {
+    const { nombre, proyecto, columna } = req.body;
 
-    const { id_task, id_project } = req.params;
-    const { nombre } = req.body;
-
-    // Obtener todas las tareas de un proyecto
-    const tasks = await Task.find({ proyecto: id_project });
-    let cont = 0;
-
-    /* Evitar duplicados en los nombre de las tareas por proyecto.
-      Se compara el nombre de la tarea y su id. de ser cierta la comparacion significa 
-      que ya existe una tarea con el mismo nombre y no se puede cambiar el nombre de la tarea indicada */
-    while (cont < tasks.length) {
-        if (tasks[cont].nombre.toUpperCase() === nombre.toUpperCase() 
-        && tasks[cont]._id.toString() !== id_task.toString()) {
-            return res.json({ status: 403, msg: `Ya existe una tarea registrada con este nombre` });
-        }
-        cont ++;
-    }
+    const project = await Project.findById(proyecto._id).populate('tareas');
     
-    // Busca la tarea por id
-    const task = await Task.findById(id_task);
-
-    if (!task) {
-        return res.json({ status: 403, msg: 'Sin resultados' });
+    if (!project) {
+        return res.status(400).json('Proyecto no encontrado');
     }
 
-    //  Verifica si el id usuario de la tarea coincide con el id de usuario logueado
-    if (task.usuario._id.toString() !== req.user._id.toString()) {
-        return res.json({ status: 403, msg: 'Acción no válida' });
+    if (project.usuario._id.toString() !== req.user._id.toString()) {
+        return res.status(400).json('No está autorizado para realizar esta acción');
+    }
+   
+    if (project.tareas.find(task => task.nombre === nombre && task._id !== req.params.id_task)) {
+        return res.status(400).json(`La tarea '${nombre}' ya existe en el proyecto '${project.nombre}'`);
+    }
+
+    const task = await Task.findById(req.params.id_task);
+    
+    if (!task) {
+        return res.status(400).json('Tarea de encontrada');
+    }
+
+    if (!project.columnas.find(column => column._id.toString() === columna.toString())) {
+        return res.status(400).json('Columna no encontrada');
+    }
+
+    if (!project.colaboradores.find(colaborador => colaborador.usuario.toString() === req.body.responsable._id.toString())) {
+        return res.status(400).json(`El usuario colaborador no pertenece al proyecto '${project.nombre}'`);
+    }
+
+    if (!project.colaboradores.find(colaborador => colaborador.usuario.toString() === req.body.usuario._id.toString())) {
+        return res.status(400).json(`El usuario informador no pertenece al proyecto '${project.nombre}'`);
     }
 
     task.nombre = req.body.nombre || task.nombre;
     task.descripcion = req.body.descripcion || task.descripcion;
-    task.asignacion = req.body.asignacion || task.asignacion;
     task.vencimiento = req.body.vencimiento || task.vencimiento;
+    task.usuario = req.body.usuario || task.usuario;
+    task.responsable = req.body.responsable || task.responsable;
     task.columna = req.body.columna || task.columna;
 
     try {
-        const updateTask = await task.save();
+        await task.save();
 
-        return res.json({ status: 200, msg: updateTask });
+        return res.status(200).json(`Se ha actualizado la tarea`);
     } catch (error) {
-        console.log(error);
-        return res.json({ status: 500, msg: error, tasks });
+        return res.status(500).json('Algo salio mal, no se ha podido actualizar la tarea');
     }
 
 }
@@ -168,7 +136,6 @@ const deleteTask = async (req, res) => {
 export { 
     addTask, 
     getTask, 
-    getTasksByProject, 
     updateTask, 
     deleteTask
 }

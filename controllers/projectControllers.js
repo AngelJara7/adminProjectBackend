@@ -1,4 +1,3 @@
-import { populate } from "dotenv";
 import Project from "../models/Project.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
@@ -100,14 +99,21 @@ const getProject = async (req, res) => {
                 populate: { path: 'usuario', select: '_id nombre email foto' }
             })
             .populate({
-                path: 'columnas',
-                populate: { path: 'tareas', populate: [
-                    { path: 'usuario', select: '_id nombre email foto' },
-                    { path: 'responsable', select: '_id nombre email foto' }
-                ]}
+                path: 'columnas', populate: {
+                    path: 'tareas', populate: [
+                        { path: 'usuario', select: '_id nombre email foto' }, 
+                        { path: 'responsable', select: '_id nombre email foto' },
+                    ]
+                },
+            })
+            .populate({
+                path: 'tareas', populate: [
+                    { path: 'usuario', select: '_id nombre email foto' }, 
+                    { path: 'responsable', select: '_id nombre email foto' },
+                ] 
             })
             .select('-__v');
-        
+
         if (!project) {
             return res.status(400).json('Proyecto no encontrado');
         }
@@ -118,7 +124,7 @@ const getProject = async (req, res) => {
             )) {
             return res.status(400).json('Acción no válida');
         }
-        // console.log({ project });
+
         res.status(200).json(project);
 
     } catch (error) {

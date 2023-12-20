@@ -238,6 +238,22 @@ const savePhoto = async (req, res) => {
     }
 }
 
+const searchUser = async (req, res) => {
+    
+    try {
+        const user = await User.findById(req.params._id).select('-password -token -verificada -__v');
+        
+        if (!user) {
+            return res.status(400).json('Usuario no encontrado');
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        return res.status(500).json('Algo salio mal, intentalo de nuevo');
+    }
+
+}
+
 export {
     register,
     confirmAccount,
@@ -248,5 +264,6 @@ export {
     checkToken,
     newPassword,
     updatePassword,
-    savePhoto
+    savePhoto,
+    searchUser
 };
