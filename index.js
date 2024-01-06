@@ -5,6 +5,7 @@ import path from "path";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
+import collaboratorRoutes from "./routes/collaboratorRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 
 const app = express();
@@ -19,6 +20,7 @@ connectDB();
 
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/collaborators', collaboratorRoutes);
 app.use('/api/tasks', taskRoutes);
 
 app.use('/uploads', express.static(path.resolve('uploads')));

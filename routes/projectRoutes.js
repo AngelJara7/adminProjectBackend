@@ -12,15 +12,13 @@ import {
     searchCollaborator, 
     addCollaborator, 
     updateCollaborator, 
-    deleteColaborator, 
-    projectTasks, } 
+    deleteColaborator, } 
     from "../controllers/projectControllers.js";
 import checkAuth from "../middleware/checkAuth.js";
 
 // Rutas Privadas
 router.route('/').post(checkAuth, addProject).get(checkAuth, getProjects);
 router.route('/:id_project').get(checkAuth, getProject).put(checkAuth, updateProject).delete(checkAuth, deleteProject);
-router.route('/tasks/:id_project').get(checkAuth, projectTasks);
 
 router.route('/columns/:id_project').post(checkAuth, addColumn);
 router.route('/columns/:id_column/:id_project').put(checkAuth, updateColumn).post(checkAuth, deleteColumn);

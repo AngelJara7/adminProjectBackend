@@ -1,29 +1,41 @@
-import Project from "../models/Project.js";
-import User from "../models/User.js";
 import mongoose from "mongoose";
+import User from "../models/User.js";
+import Project from "../models/Project.js";
+import Task from "../models/Task.js";
+import Collaborator from "../models/Collaborator.js";
 
 // Funciones para administrar Proyectos
 const addProject = async (req, res) => {
     
-    const projecteExist = await Project.findOne({ usuario: req.user._id, nombre: req.body.nombre });
+    const project = await Project.findOne({ usuario: req.user._id, nombre: req.body.nombre });
 
-    if (projecteExist) {
+    if (project) {
         return res.status(400).json(`El proyecto '${req.body.nombre}' ya existe`);
     }
 
     try {
-        const project = new Project(req.body);
-        project.usuario = req.user._id;
-        project.columnas = [ // Columnas se agregan al proyecto por defecto
+        const newProject = new Project(req.body);
+        newProject.usuario = req.user._id;
+        
+        newProject.columnas = [
             { nombre: 'Por hacer' },
             { nombre: 'En curso' },
             { nombre: 'Finalizada' }
         ];
 
-        await project.save();
+        const collaborator = await Collaborator.create({
+            proyecto: newProject,
+            usuario: req.user,
+            rol: 'Administrador'
+        });
+
+        newProject.colaboradores.push(collaborator);
+
+        await newProject.save();
 
         return res.status(200).json('Proyecto creado');
     } catch (error) {
+        console.log(error);
         return res.status(500).json('Algo salió mal, no se pudo crear el proyecto');
     }
 }
@@ -31,44 +43,13 @@ const addProject = async (req, res) => {
 const getProjects = async (req, res) => {
     
     try {
-        // const projects = await Project.aggregate([
-        //     {
-        //         $match: { 
-        //             $or: [
-        //                 { usuario: new mongoose.Types.ObjectId(req.user._id) }, 
-        //                 { colaboradores: new mongoose.Types.ObjectId(req.user._id) }
-        //             ],
-        //             nombre: { 
-        //                 $regex: req.query.project || '', $options: 'i'
-        //             }
-        //         }
-        //     }, {
-        //         $lookup: {
-        //             from: 'users', 
-        //             localField: 'usuario', 
-        //             foreignField: '_id', 
-        //             as: 'user'
-        //         }
-        //     }, {
-        //         $project: {
-        //             _id: "$_id",
-        //             nombre: '$nombre', 
-        //             clave: '$clave', 
-        //             descripcion: '$descripcion', 
-        //             fecha: '$fecha_creacion',
-        //             usuario: {
-        //                 _id: '$user._id', 
-        //                 nombre: '$user.nombre', 
-        //                 email: '$user.email'
-        //             }
-        //         }
-        //     }
-        // ]).sort({ _id: 1 });
 
+        const collaborator = await Collaborator.findOne({ usuario: req.user });
+        
         const projects = await Project.find({
             $or: [
-                { usuario: new mongoose.Types.ObjectId(req.user._id) },
-                { 'colaboradores.usuario': new mongoose.Types.ObjectId(req.user._id) }
+                { usuario: { $in: req.user._id } },
+                { colaboradores: { $in: collaborator._id } }
             ],
             nombre: {
                 $regex: req.query.id_project || '', $options: 'i'
@@ -79,7 +60,6 @@ const getProjects = async (req, res) => {
         return res.status(200).json(projects);
         
     } catch (error) {
-        console.log({ error });
         return res.status(500).json('Ocurrio un error al obtener los proyectos');
     }
 
@@ -88,39 +68,38 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
     
     try {
+        const collaborator = await Collaborator.findOne({ usuario: req.user });
+        
         const project = await Project.findOne({ nombre: req.params.id_project })
             .populate('usuario', '_id nombre email foto')
-            // .populate({ path: 'tareas', select: '-__v', populate: [
-            //     { path: 'usuario', select: '_id nombre email foto' },
-            //     { path: 'responsable', select: '_id nombre email foto' },
-            // ]})
             .populate({
                 path:'colaboradores', 
                 populate: { path: 'usuario', select: '_id nombre email foto' }
             })
-            .populate({
-                path: 'columnas', populate: {
-                    path: 'tareas', populate: [
-                        { path: 'usuario', select: '_id nombre email foto' }, 
-                        { path: 'responsable', select: '_id nombre email foto' },
-                    ]
-                },
-            })
+            // .populate('colaboradores')
             .populate({
                 path: 'tareas', populate: [
-                    { path: 'usuario', select: '_id nombre email foto' }, 
-                    { path: 'responsable', select: '_id nombre email foto' },
+                    { 
+                        path: 'usuario', populate: { 
+                            path: 'usuario', select: '_id nombre email foto' 
+                        } 
+                    }, { 
+                        path: 'responsable', populate: { 
+                            path: 'usuario', select: '_id nombre email foto' 
+                        } 
+                    },
                 ] 
             })
+            
             .select('-__v');
-
+            
         if (!project) {
             return res.status(400).json('Proyecto no encontrado');
         }
-    
+        
         if (project.usuario._id.toString() !== req.user._id.toString() &&
             !project.colaboradores.some(
-                colaborador => colaborador.usuario._id.toString() === req.user._id.toString()
+                colaborador => colaborador._id.toString() === collaborator._id.toString()
             )) {
             return res.status(400).json('Acción no válida');
         }
@@ -128,7 +107,6 @@ const getProject = async (req, res) => {
         res.status(200).json(project);
 
     } catch (error) {
-        console.log({error});
         res.status(500).json('Algó salio mal');
     }
 
@@ -192,10 +170,10 @@ const deleteProject = async (req, res) => {
     }
 
     try {
-        await project.deleteOne();
+        await Promise.allSettled([await Task.deleteMany({ proyecto: project._id }), await project.deleteOne()]);
         res.status(200).json('Proyecto eliminado');
     } catch (error) {
-        return res.jstatu(500).json('Algó salio mal, no se pudo eliminar el proyecto');
+        return res.status(500).json('Algó salio mal, no se pudo eliminar el proyecto');
     }
 }
 
@@ -298,7 +276,7 @@ const searchCollaborator = async (req, res) => {
         {
             $regex: req.body.email || '', $options: 'i' 
         }
-    }).select("-password -verificada -token -foto -__v");
+    }).limit(5).select("-password -verificada -token -foto -__v");
     
     if (!users) {
         return res.status(400).json('Usuario no encontrado');
@@ -311,15 +289,12 @@ const addCollaborator = async (req, res) => {
 
     try {
         const project = await Project.findById(req.params.id_project);
+        
         if (!project) {
             return res.status(400).json('Proyecto no encontrado');
         }
         
-        if (project.usuario.toString() !== req.user._id.toString() &&
-            !project.colaboradores.some(
-                colaborador => colaborador.usuario._id.toString() === req.user._id.toString()
-                && colaborador.rol === 'Administrador'
-            )) {
+        if (project.usuario.toString() !== req.user._id.toString()) {
             return res.status(400).json('No esta autorizado para realizar esta acción');
         }
         
@@ -330,16 +305,19 @@ const addCollaborator = async (req, res) => {
             return res.status(400).json('Usuario no encontrado');
         }
         
-        if (project.usuario.toString() === user._id.toString()) {
-            return res.status(400).json('El creador del proyecto no puede ser un colaborador');
-        }
-        
         if (project.colaboradores.find(colaborador => colaborador.usuario.toString() === user._id.toString())) {
             return res.status(400).json(`El usuario '${user.email}' ya pertenece al proyecto`);
         }
-        
+
         project.colaboradores.push({ usuario: user, rol: req.body.rol });
-        // project.colaboradores.push(user);
+        const collaborator = new Collaborator({
+            proyecto: project._id,
+            usuario: user,
+            rol: req.body.rol
+        });
+        const col = await collaborator.save();
+        console.log('COLABORADOR: ',{ col });
+        
         await project.save();
         return res.status(200).json(`El usuario '${user.email}' ha sido agregado al proyecto '${project.nombre}'`);
     } catch (error) {
@@ -403,26 +381,6 @@ const deleteColaborator = async (req, res) => {
     return res.status(200).json(`Se ha eliminado a '${req.body.usuario.email}' del proyecto '${project.nombre}'`);
 }
 
-// Funciones para administrar Tareas por Columnas y Proyectos
-const projectTasks = async (req, res) => {
-    const projects = await Project.aggregate([
-        {
-            $lookup: {
-                from: 'tasks', 
-                localField: '_id', 
-                foreignField: 'proyecto', 
-                as: 'projectTasks'
-            }
-        }, {
-            $match: {
-                _id: new mongoose.Types.ObjectId(req.params.id_project), usuario: req.user._id
-            }
-        }
-    ]);
-
-    return res.json({ status: 200, msg: projects });
-}
-
 export {
     addProject, 
     getProjects, 
@@ -436,5 +394,4 @@ export {
     addCollaborator, 
     updateCollaborator, 
     deleteColaborator, 
-    projectTasks
 };

@@ -19,11 +19,11 @@ const taskSchema = mongoose.Schema({
     },
     usuario: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: "Collaborator"
     },
     responsable: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: "Collaborator"
     },
     proyecto: {
         type: mongoose.Schema.Types.ObjectId,

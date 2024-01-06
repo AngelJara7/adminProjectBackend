@@ -31,18 +31,22 @@ const projectSchema = mongoose.Schema({
         },
     ],
     colaboradores: [
+        // {
+        //     usuario: {
+        //         type: mongoose.Schema.Types.ObjectId,
+        //         ref: 'User',
+        //         required: true
+        //     },
+        //     rol: {
+        //         type: String,
+        //         enum: ['Administrador', 'Colaborador'],
+        //         default: 'colaborador',
+        //         required: true
+        //     }
+        // }
         {
-            usuario: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
-                required: true
-            },
-            rol: {
-                type: String,
-                enum: ['Administrador', 'Colaborador'],
-                default: 'colaborador',
-                required: true
-            }
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Collaborator'
         }
     ],
     tareas: [
