@@ -44,18 +44,44 @@ const getProjects = async (req, res) => {
     
     try {
 
-        const collaborator = await Collaborator.findOne({ usuario: req.user });
+        // const collaborator = await Collaborator.findOne({ usuario: req.user });
         
-        const projects = await Project.find({
-            $or: [
-                { usuario: { $in: req.user._id } },
-                { colaboradores: { $in: collaborator._id } }
-            ],
-            nombre: {
-                $regex: req.query.id_project || '', $options: 'i'
+        // const projects = await Project.find({
+        //     $or: [
+        //         { usuario: { $in: req.user._id } },
+        //         { 'colaboradores': req.user._id  }
+        //     ],
+        //     nombre: {
+        //         $regex: req.query.id_project || '', $options: 'i'
+        //     }
+        // }).populate('usuario', '_id nombre email foto')
+        // .populate('colaboradores').sort({ _id: 1 })
+        // .select('_id nombre descripcion usuario clave');
+        const projects = await Project.aggregate([
+            {
+                $lookup: {
+                    from: 'collaborators', 
+                    localField: 'colaboradores', 
+                    foreignField: '_id', 
+                    as: 'colaboradores'
+                }
+            }, {
+              $match: {
+                $or: [
+                  { usuario: req.user._id }, 
+                  { 'colaboradores.usuario': req.user._id }
+                ]
+              }
+            }, {
+              $project: {
+                _id: 1, 
+                nombre: 1, 
+                descripcion: 1, 
+                usuario: 1, 
+                clave: 1,
+              }
             }
-        }).populate('usuario', '_id nombre email foto').sort({ _id: 1 })
-        .select('_id nombre descripcion usuario clave');
+          ]);
         
         return res.status(200).json(projects);
         
@@ -68,15 +94,12 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
     
     try {
-        const collaborator = await Collaborator.findOne({ usuario: req.user });
-        
         const project = await Project.findOne({ nombre: req.params.id_project })
             .populate('usuario', '_id nombre email foto')
             .populate({
                 path:'colaboradores', 
                 populate: { path: 'usuario', select: '_id nombre email foto' }
             })
-            // .populate('colaboradores')
             .populate({
                 path: 'tareas', populate: [
                     { 
@@ -89,13 +112,14 @@ const getProject = async (req, res) => {
                         } 
                     },
                 ] 
-            })
-            
-            .select('-__v');
+            }).select('-__v');
+
             
         if (!project) {
             return res.status(400).json('Proyecto no encontrado');
         }
+            
+        const collaborator = await Collaborator.findOne({ usuario: req.user, proyecto: project._id });
         
         if (project.usuario._id.toString() !== req.user._id.toString() &&
             !project.colaboradores.some(

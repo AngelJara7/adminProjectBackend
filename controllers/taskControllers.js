@@ -5,7 +5,7 @@ import Collaborator from "../models/Collaborator.js";
 const addTask = async (req, res) => {
     const { nombre, proyecto, columna } = req.body;
     
-    const project = await Project.findById(proyecto._id).populate('tareas');
+    const project = await Project.findById(proyecto._id).populate('tareas').populate('colaboradores');
     
     if (!project) {
         return res.status(400).json('El proyecto no existe');
@@ -17,9 +17,9 @@ const addTask = async (req, res) => {
     if (!responsable && !usuario) {
         return res.status().json('Usuarios no encontrados');
     }
-   
+    
     if (project.usuario.toString() !== req.user._id.toString() && !project.colaboradores.some(
-        colaborador => colaborador.toString() === req.user._id.toString()
+        colaborador => colaborador.usuario.toString() === req.user._id.toString()
         && colaborador.rol === 'Administrador'
     )) {
         return res.status(400).json('No esta autorizado para realizar esta acción');
@@ -34,13 +34,13 @@ const addTask = async (req, res) => {
     }
 
     if (!project.colaboradores.find(
-            colaborador => colaborador.toString() === responsable._id.toString()
+            colaborador => colaborador.toString() === responsable.toString()
         )) {
         return res.status(400).json(`El usuario responsable no pertenece al proyecto '${project.nombre}'`);
     }
 
     if (!project.colaboradores.find(
-            colaborador => colaborador.toString() === usuario._id.toString()
+            colaborador => colaborador.toString() === usuario.toString()
         )) {
         return res.status(400).json(`El usuario informador no pertenece al proyecto '${project.nombre}'`);
     }
@@ -80,7 +80,7 @@ const updateTask = async(req, res) => {
     let responsable = req.body.responsable._id ? req.body.responsable._id : req.body.responsable;
     let usuario = req.body.usuario._id ? req.body.usuario._id : req.body.usuario;
     
-    const project = await Project.findById(proyecto._id).populate('tareas');
+    const project = await Project.findById(proyecto._id).populate('tareas').populate('colaboradores');
     
     if (!project) {
         return res.status(400).json('Proyecto no encontrado');
@@ -100,17 +100,17 @@ const updateTask = async(req, res) => {
         return res.status(400).json('Columna no encontrada');
     }
 
-    if (!project.colaboradores.find(colaborador => colaborador.toString() === responsable.toString())) {
+    if (!project.colaboradores.find(colaborador => colaborador._id.toString() === responsable.toString())) {
         return res.status(400).json(`El usuario colaborador no pertenece al proyecto '${project.nombre}'`);
     }
 
-    if (!project.colaboradores.find(colaborador => colaborador.toString() === usuario.toString())) {
+    if (!project.colaboradores.find(colaborador => colaborador._id.toString() === usuario.toString())) {
         return res.status(400).json(`El usuario informador no pertenece al proyecto '${project.nombre}'`);
     }
 
     if (project.usuario._id.toString() !== req.user._id.toString() && 
         !project.colaboradores.some(
-            colaborador => colaborador.toString() === req.user._id.toString() && 
+            colaborador => colaborador.usuario.toString() === req.user._id.toString() && 
             colaborador.rol === 'Administrador'
     ) && req.user._id.toString() !== task.responsable.usuario.toString()) {
         return res.status(400).json('No está autorizado para realizar esta acción');

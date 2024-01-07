@@ -49,14 +49,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('editing projects', () => {
-        socket.emit('edited projects');
+        io.emit('edited projects');
     });
 
     socket.on('edit profile', () => {
-        socket.emit('edited profile');
+        io.emit('edited profile');
     });
 
     socket.on('editing collaborators', () => {
-        socket.emit('edited contributors');
+        io.emit('edited contributors');
     });
 });
