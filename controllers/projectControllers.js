@@ -35,7 +35,6 @@ const addProject = async (req, res) => {
 
         return res.status(200).json('Proyecto creado');
     } catch (error) {
-        console.log(error);
         return res.status(500).json('Algo salió mal, no se pudo crear el proyecto');
     }
 }
@@ -73,20 +72,30 @@ const getProjects = async (req, res) => {
                 ]
               }
             }, {
+                $lookup: {
+                    from: 'users',
+                    localField: 'usuario',
+                    foreignField: '_id',
+                    as: 'usuario'
+                }
+            }, {
               $project: {
                 _id: 1, 
                 nombre: 1, 
                 descripcion: 1, 
-                usuario: 1, 
                 clave: 1,
+                'usuario._id': 1,
+                'usuario.nombre': 1,
+                'usuario.email': 1,
+                'usuario.foto': 1
               }
-            }
+            }, { $unwind: '$usuario' }
           ]);
         
         return res.status(200).json(projects);
         
     } catch (error) {
-        return res.status(500).json('Ocurrio un error al obtener los proyectos');
+        return res.status(500).json('Ocurrió un error al obtener los proyectos');
     }
 
 }
@@ -94,7 +103,7 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
     
     try {
-        const project = await Project.findOne({ nombre: req.params.id_project })
+        const project = await Project.findById(req.params.id_project)
             .populate('usuario', '_id nombre email foto')
             .populate({
                 path:'colaboradores', 
@@ -133,51 +142,39 @@ const getProject = async (req, res) => {
     } catch (error) {
         res.status(500).json('Algó salio mal');
     }
-
+    
 }
 
 const updateProject = async (req, res) => {
-    const { id_project } = req.params;
-    const { nombre, clave, descripcion } = req.body;
     
-    // Obtener todas los proyectos de un usuario
-    const projects = await Project.find({ usuario: req.user._id }).sort({ _id: 1 });
-    let cont = 0;
-    
-    /* Evitar duplicados en los nombre de los proyectos por usuario.
-      Se compara el nombre del prpyecto y su id. de ser cierta la comparacion significa 
-      que ya existe un proyecto con el mismo nombre y no se puede cambiar el nombre del proyecto indicada */
-    while (cont < projects.length) {
-        
-        if (projects[cont].nombre.toUpperCase() === nombre.toUpperCase() 
-        && projects[cont]._id.toString() !== id_project.toString()) {
-            return res.json({ status: 403, msg: `Ya existe un proyecto registrado con este nombre` });
-        }
-        cont ++;
-    }
-
-    // Verifica si el proyecto existe por su id
-    const project = await Project.findById(req.params.id_project);
-    
-    if (!project) {
-        return res.json({ status: 403, msg: 'Sin resultados' });
-    }
-
-    //  Verifica si el id usuario del proyecto coincide con el id de usuario logueado
-    if (project.usuario._id.toString() !== req.user._id.toString()) {
-        return res.json({ status: 403, msg: 'Acción no válida' });
-    }
-
-    project.nombre = nombre;
-    project.clave = clave;
-    project.descripcion = descripcion;
-
     try {
-        const updateProject = await project.save();
 
-        return res.json({ status: 200, msg: updateProject });
+        const project = await Project.findById(req.params.id_project);
+        
+        if (!project) {
+            return res.status(400).json('Proyecto no encontrado');
+        }
+
+        const projectUser = await Project.find({ usuario: req.body.usuario._id });
+        console.log('EXISTE', projectUser);
+        if (projectUser.find(proyecto => proyecto._id === project._id && 
+            proyecto.nombre === project.nombre && proyecto.usuario === project.usuario)) {
+            return res.status(400).json(`El proyecto '${req.body.nombre}' ya existe `);
+        }
+
+        if (project.usuario._id.toString() !== req.user._id.toString()) {
+            return res.status(400).json('No esta autorizado para realizar esta acción');
+        }
+
+        project.nombre = req.body.nombre || project.nombre;
+        project.descripcion = req.body.descripcion || project.descripcion;
+        project.clave = req.body.clave || project.clave;
+
+        await project.save();
+
+        return res.status(200).json('Se ha actualizado correctamente el proyecto');
     } catch (error) {
-        return res.json({ status: 500, msg: error, projects });
+        return res.status(500).json('Algo salió mal, no se pudo actualizar el proyecto');
     }
 }
 

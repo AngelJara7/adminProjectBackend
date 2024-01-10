@@ -55,7 +55,7 @@ const projectSchema = mongoose.Schema({
             ref: 'Task'
         }
     ],
-    fecha_creacion: {
+    creacion: {
         type: Date,
         default: new Date()
     },
