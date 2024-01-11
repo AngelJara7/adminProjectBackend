@@ -12,7 +12,7 @@ const searchCollaborator = async (req, res) => {
             {
                 $regex: req.query.email || '', $options: 'i' 
             }
-        }).limit(5).select("-password -verificada -token -foto -__v");
+        }).limit(5).select("-password -verificada -token -__v");
         
         if (!users) {
             return res.status(400).json('Usuario no encontrado');
