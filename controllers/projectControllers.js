@@ -7,9 +7,9 @@ import Collaborator from "../models/Collaborator.js";
 // Funciones para administrar Proyectos
 const addProject = async (req, res) => {
     
-    const project = await Project.findOne({ usuario: req.user._id, nombre: req.body.nombre });
+    const projectExist = await Project.findOne({ usuario: req.user._id, nombre: req.body.nombre });
 
-    if (project) {
+    if (projectExist) {
         return res.status(400).json(`El proyecto '${req.body.nombre}' ya existe`);
     }
 
@@ -31,9 +31,9 @@ const addProject = async (req, res) => {
 
         newProject.colaboradores.push(collaborator);
 
-        await newProject.save();
+        const project = await newProject.save();
 
-        return res.status(200).json('Proyecto creado');
+        return res.status(200).json(`Se ha agregado el proyecto '${project.nombre}' correctamente`);
     } catch (error) {
         return res.status(500).json('Algo salió mal, no se pudo crear el proyecto');
     }
@@ -192,7 +192,7 @@ const deleteProject = async (req, res) => {
 
     try {
         await Promise.allSettled([await Task.deleteMany({ proyecto: project._id }), await project.deleteOne()]);
-        res.status(200).json('Proyecto eliminado');
+        res.status(200).json(`Se ha eliminado el proyecto '${project.nombre}' correctamente`);
     } catch (error) {
         return res.status(500).json('Algó salio mal, no se pudo eliminar el proyecto');
     }
@@ -271,14 +271,15 @@ const deleteColumn = async (req, res) => {
         return res.status(400).json('Columna no encontrada');
     }
 
-    // *columna que guardara las tareas existentes de la columna a eliminar
     const replaceColumn = project.columnas.find(columna => columna.id === req.body.columna);
 
     if (!replaceColumn) {
         return res.status(400).json('Algo solio mal, no hemos podido eliminar la columna. Intentalo de nuevo');
     }
-    
-    replaceColumn.tareas = replaceColumn.tareas.concat(deleteColumn.tareas);
+
+    const tareas = await Task.updateMany({ 
+        columna: req.params.id_column 
+    }, { $set: { columna: replaceColumn._id }});
 
     try {
         project.columnas.pull(req.params.id_column);
@@ -302,7 +303,7 @@ const searchCollaborator = async (req, res) => {
     if (!users) {
         return res.status(400).json('Usuario no encontrado');
     }
-    
+
     res.status(200).json(users);
 }
 
